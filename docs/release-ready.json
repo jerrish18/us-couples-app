@@ -1,0 +1,9 @@
+{
+  "ready": true,
+  "validated_source_commit": "b2fcf51054a22155b616c4581b91a7b74a0ff83c",
+  "validated_run": 38624345330,
+  "email_confirmation_required": true,
+  "google_provider_enabled": true,
+  "physical_device_checks": "not performed; see VALIDATION.md",
+  "release_workflow_requires_exact_apk_launch": true
+}

@@ -1,6 +1,6 @@
 # Release validation
 
-The app is not yet cleared for public APK release. Google provider configuration and actual-device push delivery remain unverified.
+Release configuration is complete. The exact signed universal candidate passed installation and launch on Android API 24 in GitHub Actions run 38624345330. Physical-phone feature checks listed below remain unverified.
 
 ## Passed
 
@@ -17,11 +17,13 @@ The app is not yet cleared for public APK release. Google provider configuration
 - FCM service-account OAuth and FCM endpoint health confirmed; invalid dummy device token correctly rejected.
 - Security advisor: no warnings/errors; four informational notices are intentional RLS-deny-all internal tables. See https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
 
+- Exact signed candidate installs and reaches the login screen on Android API 24; process stays alive and no app crash is reported. WorkManager reflection and notification drawable retention fixes are verified in the optimized release.
+
 ## Outstanding
 
-- Exact signed APK installation/launch on an Android API 24 emulator is running in CI.
-- Google OAuth client and Supabase provider/redirect configuration.
-- Email signup delivery setup: default Supabase SMTP does not support arbitrary recipient addresses. Email confirmation is still enabled, pending the owner's choice.
+- Real Google account authorization and return to the installed app remain untested. Provider is enabled; authorization redirects to Google with the expected Firebase-project client, exact Supabase callback and basic email/profile scopes. Google documents basic-identity-only apps as exempt from the testing allowlist requirement.
+- Google provider, client, callback and app redirect allowlist are configured. No Google account password or OAuth client secret is included in source or APK.
+- Email confirmation remains enabled by the owner's choice. Custom Gmail SMTP settings are saved with an encrypted credential entered by the owner. Actual signup-email receipt has not yet been verified.
 - Actual Android phone FCM receipt, notification action, microphone, photo picker, biometric prompts, offline network switching, widget launcher and OS scheduling behavior need real-device checks. An emulator launch is not evidence these work on a physical phone.
 
 ## Free-tier behavior
