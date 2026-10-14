@@ -1,0 +1,19 @@
+# Signing keys and secrets must never enter this public repository
+*.jks
+*.keystore
+key.properties
+.env
+.env.*
+!.env.example
+android/local.properties
+android/app/google-services.json
+service-account*.json
+firebase-admin*.json
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+coverage/
+.idea/
+*.iml
+.DS_Store
