@@ -33,7 +33,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if(path!=null)await _send(space,file:path,kind:'voice');return;}
       if(!await _recorder.hasPermission())return;
       final root=await getApplicationSupportDirectory();
-      await _recorder.start(const RecordConfig(encoder:AudioEncoder.aacLc,bitRate:48000,sampleRate:22050,numChannels:1),path:'${root.path}/${const Uuid().v4()}.m4a');
+      final folder=await Directory('${root.path}/us-media/${space.session.coupleId}').create(recursive:true);
+      await _recorder.start(const RecordConfig(encoder:AudioEncoder.aacLc,bitRate:48000,sampleRate:22050,numChannels:1),path:'${folder.path}/${const Uuid().v4()}.m4a');
       if(mounted)setState(()=>_recording=true);
       _recordLimit=Timer(const Duration(minutes:3),()=>_voice(space));
     }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Could not record. Check microphone permission.')));}
@@ -41,7 +42,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Future<void> _play(UsSpace space,Map<String,dynamic> message) async {
     await safely(context,() async {await _player.stop();
       if(message['_local_file']!=null)await _player.setFilePath(message['_local_file'] as String);
-      else await _player.setUrl(await space.mediaUrl(message['media_path'] as String));
+      else await _player.setFilePath(await space.mediaFile(message['media_path'] as String));
       unawaited(_player.play());});
   }
   void _read(UsSpace space,List<Map<String,dynamic>> messages) {
@@ -90,7 +91,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           trailing:IconButton(onPressed:()=>setState(()=>_reply=null),icon:const Icon(Icons.close))),
         if(_recording)const Padding(padding:EdgeInsets.all(8),child:Text('Recording · tap stop to send · maximum 3 minutes')),
         SafeArea(top:false,child:Padding(padding:const EdgeInsets.fromLTRB(8,4,8,8),child:Row(crossAxisAlignment:CrossAxisAlignment.end,children:[
-          IconButton(tooltip:'Share photo',onPressed:_sending||_recording?null:() async {await safely(context,() async {final path=await pickPhoto();if(path!=null)await _send(space,file:path,kind:'photo');});},icon:const Icon(Icons.add_photo_alternate_outlined)),
+          IconButton(tooltip:'Share photo',onPressed:_sending||_recording?null:() async {await safely(context,() async {final path=await pickPhoto(coupleId:space.session.coupleId!);if(path!=null)await _send(space,file:path,kind:'photo');});},icon:const Icon(Icons.add_photo_alternate_outlined)),
           Expanded(child:TextField(controller:_text,minLines:1,maxLines:4,maxLength:8000,buildCounter:(_, {required currentLength,required isFocused,maxLength})=>null,
             onChanged:(_)=>space.typing(true),decoration:const InputDecoration(hintText:'A little hello…'))),
           IconButton(tooltip:_recording?'Stop and send voice note':'Record voice note',onPressed:_sending?null:()=>_voice(space),icon:Icon(_recording?Icons.stop_circle:Icons.mic_none)),

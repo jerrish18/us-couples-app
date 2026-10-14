@@ -59,7 +59,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
       ListTile(leading:const Icon(Icons.person_outline),title:const Text('My name'),subtitle:Text(space.me?['display_name'] as String? ?? 'Your person'),onTap:()=>_text(space,'display_name','Your name')),
       ListTile(leading:const Icon(Icons.favorite_outline),title:const Text('Partner nickname'),subtitle:Text(space.me?['nickname'] as String? ?? 'What I call my person'),onTap:()=>_text(space,'nickname','What do you call your person?')),
       ListTile(leading:const Icon(Icons.photo_camera_outlined),title:const Text('My profile photo'),onTap:()=>safely(context,() async {
-        final file=await pickPhoto();if(file==null)return;
+        final file=await pickPhoto(coupleId:space.session.coupleId!);if(file==null)return;
         final path='${space.session.coupleId}/${space.session.userId}/avatar-${DateTime.now().millisecondsSinceEpoch}.jpg';
         await space.session.client.storage.from('couple-media').uploadBinary(path,await File(file).readAsBytes(),fileOptions:const FileOptions(contentType:'image/jpeg'));
         await space.profile({'avatar_path':path});

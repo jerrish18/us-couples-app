@@ -7,7 +7,7 @@ import '../../core/ui.dart';
 class MemoriesScreen extends ConsumerWidget {
   const MemoriesScreen({super.key});
   Future<void> _add(BuildContext context,UsSpace space) async {
-    await safely(context,() async {final path=await pickPhoto();if(path==null||!context.mounted)return;
+    await safely(context,() async {final path=await pickPhoto(coupleId:space.session.coupleId!);if(path==null||!context.mounted)return;
       final caption=await askText(context,'Keep this little moment',hint:'A caption for your memory',max:4000,lines:2);
       if(caption==null||!context.mounted)return;
       final date=await pickDateTime(context,time:false);if(date==null)return;

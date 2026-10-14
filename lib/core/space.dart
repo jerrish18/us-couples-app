@@ -6,6 +6,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
+import 'package:path_provider/path_provider.dart';
 import 'local_database.dart';
 import 'session.dart';
 import 'notifications.dart';
@@ -38,13 +39,14 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
   int queued = 0;
   String? error;
   Map<String,dynamic> preferences = {};
+  final Map<String,Future<String>> _downloads={};
   List<Map<String,dynamic>> get items => rows['messages'] ?? [];
   Map<String,dynamic>? get partner => (rows['profiles'] ?? [])
     .where((p) => p['user_id'] == session.partnerId).firstOrNull;
   Map<String,dynamic>? get me => (rows['profiles'] ?? [])
     .where((p) => p['user_id'] == session.userId).firstOrNull;
   void _notify() { if (!_dead) notifyListeners(); }
-  bool _current(String uid,String cid) => !_dead && session.userId == uid && session.coupleId == cid && _uid == uid && _cid == cid;
+  bool _current(String uid,String cid) => !_dead && session.userId == uid && session.coupleId == cid && _uid == uid && _cid == cid && session.couple?['deleting_at']==null;
   Future<void> _sessionChanged() async {
     if (_dead) return;
     final uid = session.userId, cid = session.coupleId;
@@ -167,6 +169,10 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
     final db=_db;
     if(db!=null){for(final task in await db.pending()){if(task.localFile!=null){try{await File(task.localFile!).delete();}catch(_){}}}await db.clear();}
     rows.clear();queued=0;await UsWidget.clear();
+    final cid=_cid;if(cid!=null){
+      final root=await getApplicationSupportDirectory();final media=Directory('${root.path}/us-media/$cid');
+      if(await media.exists())await media.delete(recursive:true);
+    }
     await UsNotifications.plugin.cancelAll();
   }
   Future<void> send(String body,{String? file,String? kind,String? replyTo,bool memory=false,String? caption,DateTime? memoryDate}) async {
@@ -253,6 +259,32 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
     else await add('reactions',{memory?'memory_id':'message_id':id});
   }
   Future<String> mediaUrl(String path) => session.client.storage.from('couple-media').createSignedUrl(path,300);
+  Future<String> mediaFile(String path) async {
+    final active=_downloads[path];if(active!=null)return active;
+    final task=_cacheMedia(path);_downloads[path]=task;
+    try{return await task;}finally{_downloads.remove(path);}
+  }
+  Future<String> _cacheMedia(String path) async {
+    final uid=_uid,cid=_cid;
+    if(uid==null||cid==null||!path.startsWith('$cid/'))throw StateError('Photo is outside this space');
+    final root=await getApplicationSupportDirectory();
+    final folder=await Directory('${root.path}/us-media/$cid/received').create(recursive:true);
+    final file=File('${folder.path}/${const Uuid().v5(Uuid.NAMESPACE_URL,path)}${path.endsWith('.m4a')?'.m4a':'.jpg'}');
+    if(await file.exists()&&await file.length()>0)return file.path;
+    final client=HttpClient()..connectionTimeout=const Duration(seconds:15);
+    final temp=File('${file.path}.part');
+    try{
+      final url=await mediaUrl(path);
+      final response=await (await client.getUrl(Uri.parse(url))).close().timeout(const Duration(seconds:20));
+      if(response.statusCode!=200||response.contentLength>5242880)throw StateError('Media could not be loaded');
+      final sink=temp.openWrite();var bytes=0;
+      try{await for(final chunk in response.timeout(const Duration(seconds:20))){bytes+=chunk.length;if(bytes>5242880)throw StateError('Media is too large');sink.add(chunk);}}
+      finally{await sink.close();}
+      if(!_current(uid,cid))throw StateError('Space changed');
+      await temp.rename(file.path);return file.path;
+    }catch(_){if(await temp.exists())await temp.delete();rethrow;}
+    finally{client.close(force:true);}
+  }
   Future<void> respond(String dateId,String status,{DateTime? proposed}) async {
     final fields={'status':status,'proposed_at':proposed?.toUtc().toIso8601String(),'updated_at':DateTime.now().toUtc().toIso8601String()};
     final existing=await session.client.from('date_responses').select('user_id').eq('date_id',dateId).eq('user_id',_uid!).maybeSingle();

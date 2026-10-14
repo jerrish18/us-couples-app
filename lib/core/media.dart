@@ -4,11 +4,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-Future<String?> pickPhoto() async {
+Future<String?> pickPhoto({required String coupleId}) async {
   final source=await ImagePicker().pickImage(source:ImageSource.gallery);
   if(source==null)return null;
   final root=await getApplicationSupportDirectory();
-  final out='${root.path}/${const Uuid().v4()}.jpg';
+  final folder=await Directory('${root.path}/us-media/$coupleId').create(recursive:true);
+  final out='${folder.path}/${const Uuid().v4()}.jpg';
   final compressed=await FlutterImageCompress.compressAndGetFile(source.path,out,minWidth:1280,minHeight:1280,
     quality:72,format:CompressFormat.jpeg,keepExif:false);
   if(compressed==null)throw StateError('Could not compress photo');

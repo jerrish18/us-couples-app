@@ -46,12 +46,12 @@ class PrivatePhoto extends StatefulWidget {
 }
 class _PrivatePhotoState extends State<PrivatePhoto> {
   late Future<String> _url;
-  @override void initState(){super.initState();_url=widget.space.mediaUrl(widget.path);}
-  @override void didUpdateWidget(covariant PrivatePhoto old){super.didUpdateWidget(old);if(old.path!=widget.path)_url=widget.space.mediaUrl(widget.path);}
+  @override void initState(){super.initState();_url=widget.space.mediaFile(widget.path);}
+  @override void didUpdateWidget(covariant PrivatePhoto old){super.didUpdateWidget(old);if(old.path!=widget.path)_url=widget.space.mediaFile(widget.path);}
   @override Widget build(BuildContext context)=>ClipRRect(borderRadius:BorderRadius.circular(20),child:
     widget.localFile!=null&&File(widget.localFile!).existsSync()?Image.file(File(widget.localFile!),height:widget.height,width:double.infinity,fit:BoxFit.cover):
     FutureBuilder<String>(future:_url,builder:(context,snapshot)=>snapshot.hasData
-      ?Image.network(snapshot.data!,height:widget.height,width:double.infinity,fit:BoxFit.cover,
+      ?Image.file(File(snapshot.data!),height:widget.height,width:double.infinity,fit:BoxFit.cover,
         errorBuilder:(_,e,st)=>_placeholder()) : _placeholder()));
   Widget _placeholder()=>SizedBox(height:widget.height,child:const Center(child:Icon(Icons.image_outlined,size:46)));
 }
