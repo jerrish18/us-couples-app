@@ -12,6 +12,8 @@ if count != 1:
 gradle.write_text(text)
 manifest = Path('android/app/src/main/AndroidManifest.xml')
 text = manifest.read_text().replace('android:label="us"', 'android:label="Us"')
+text = text.replace('android:icon="@mipmap/ic_launcher"','android:icon="@drawable/us_icon"')
+text = text.replace('</activity>','<meta-data android:name="flutter_deeplinking_enabled" android:value="false"/></activity>',1)
 text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application android:allowBackup="false" android:fullBackupContent="false"')
 text = text.replace('<application', '<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application')
 text = text.replace('</activity>', '<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="com.jerrish18.us" android:host="login-callback"/></intent-filter></activity>',1)
@@ -38,6 +40,8 @@ for source, destination in [
     destination = Path('android/app/src/main') / destination
     destination.parent.mkdir(parents=True,exist_ok=True)
     shutil.copyfile(Path('android_templates') / source,destination)
+for icon in ['us_icon','us_notification']:
+    shutil.copyfile(Path('android_templates') / (icon+'.xml'),Path('android/app/src/main/res/drawable') / (icon+'.xml'))
 for styles in Path('android/app/src/main/res').glob('values*/styles.xml'):
     styles.write_text(re.sub(r'parent="@android:style/Theme.[^"]+"','parent="Theme.AppCompat.DayNight.NoActionBar"',styles.read_text()))
 

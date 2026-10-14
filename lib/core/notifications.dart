@@ -30,7 +30,7 @@ class UsNotifications {
   static Future<void> initialize() async {
     if(_initialized)return;
     tzdata.initializeTimeZones();
-    await plugin.initialize(const InitializationSettings(android:AndroidInitializationSettings('@mipmap/ic_launcher')),
+    await plugin.initialize(const InitializationSettings(android:AndroidInitializationSettings('us_notification')),
       onDidReceiveNotificationResponse:(r){if(r.actionId=='miss_back')unawaited(missBack(r));
         else {final data=_payload(r.payload);final route=_route(data['route']);initialRoute=route;taps.add(route);}},
       onDidReceiveBackgroundNotificationResponse:notificationBackgroundAction);

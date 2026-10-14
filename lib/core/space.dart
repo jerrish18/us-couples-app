@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -16,10 +17,11 @@ final spaceProvider = Provider<UsSpace>((ref) {
   return space;
 });
 
-class UsSpace extends ChangeNotifier {
+class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
   UsSpace(this.session) {
     session.addListener(_sessionChanged);
-    _timer = Timer.periodic(const Duration(seconds: 25), (_) async { await session.refresh();await sync(); });
+    WidgetsBinding.instance.addObserver(this);
+    _timer = Timer.periodic(const Duration(seconds: 25), (_) async { if(!_foreground)return;await _lastSeen();await session.refresh();await sync(); });
     unawaited(_sessionChanged());
   }
   final UsSession session;
@@ -29,7 +31,8 @@ class UsSpace extends ChangeNotifier {
   LocalDatabase? _db;
   Timer? _timer, _typingTimer;
   RealtimeChannel? _updates, _selfChannel, _partnerChannel;
-  String? _uid, _cid;
+  String? _uid, _cid, _subscribedPartner;
+  bool _foreground=true;
   bool loading = true, online = true, partnerOnline = false, partnerTyping = false;
   bool syncing = false, _dead = false;
   int queued = 0;
@@ -45,7 +48,13 @@ class UsSpace extends ChangeNotifier {
   Future<void> _sessionChanged() async {
     if (_dead) return;
     final uid = session.userId, cid = session.coupleId;
-    if (uid == _uid && cid == _cid) { _notify(); return; }
+    if (uid == _uid && cid == _cid) {
+      if(uid!=null&&cid!=null&&_subscribedPartner!=session.partnerId){
+        if(_partnerChannel!=null)await session.client.removeChannel(_partnerChannel!);
+        _partnerChannel=null;_subscribePartner(uid,cid);
+      }
+      _notify();return;
+    }
     if(uid==_uid && cid==null && _cid!=null)await eraseLocal();
     await _disconnect();
     _uid = uid; _cid = cid; rows.clear(); queued = 0; partnerOnline = false; partnerTyping = false;
@@ -58,6 +67,7 @@ class UsSpace extends ChangeNotifier {
     }
     await _mergePending(); loading = false; _notify();
     _subscribe(uid,cid);
+    unawaited(_lastSeen());
     await refresh(); await sync();
   }
   Future<void> _disconnect() async {
@@ -78,13 +88,17 @@ class UsSpace extends ChangeNotifier {
       filter:PostgresChangeFilter(type:PostgresChangeFilterType.eq,column:'id',value:cid),
       callback: (_) => session.refresh());
     _updates!.subscribe();
-    _selfChannel = session.client.channel('couple:$cid:user:$uid',opts:const RealtimeChannelConfig(private:true));
+    _selfChannel = session.client.channel('couple:$cid:user:$uid',opts:const RealtimeChannelConfig(private:true,enabled:true));
     _selfChannel!.subscribe((status,_) {
-      if (status == RealtimeSubscribeStatus.subscribed) unawaited(_selfChannel!.track({'online':true}));
+      if (status == RealtimeSubscribeStatus.subscribed&&_foreground) unawaited(_selfChannel!.track({'online':true}));
     });
+    _subscribePartner(uid,cid);
+  }
+  void _subscribePartner(String uid,String cid){
     final partnerId = session.partnerId;
+    _subscribedPartner=partnerId;partnerOnline=false;partnerTyping=false;
     if (partnerId != null) {
-      _partnerChannel = session.client.channel('couple:$cid:user:$partnerId',opts:const RealtimeChannelConfig(private:true));
+      _partnerChannel = session.client.channel('couple:$cid:user:$partnerId',opts:const RealtimeChannelConfig(private:true,enabled:true));
       _partnerChannel!.onPresenceSync((_) {
         if (!_current(uid,cid)) return;
         partnerOnline = _partnerChannel!.presenceState().isNotEmpty; _notify();
@@ -94,6 +108,16 @@ class UsSpace extends ChangeNotifier {
         _typingTimer = Timer(const Duration(seconds:5),() {partnerTyping=false;_notify();});_notify();
       }).subscribe();
     }
+  }
+  Future<void> _lastSeen() async {
+    final uid=_uid,cid=_cid;if(uid==null||cid==null)return;
+    try{await session.client.from('profiles').update({'last_seen':DateTime.now().toUtc().toIso8601String()}).eq('user_id',uid).eq('couple_id',cid);}catch(_){}
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state){
+    if(state==AppLifecycleState.paused){_foreground=false;unawaited(_selfChannel?.untrack());unawaited(_lastSeen());}
+    if(state==AppLifecycleState.resumed){_foreground=true;unawaited(_selfChannel?.track({'online':true}));
+      unawaited(_lastSeen());unawaited(session.refresh());unawaited(sync());unawaited(UsNotifications.requestPermission(session));}
   }
   Future<void> typing(bool value) async {
     try { await _selfChannel?.sendBroadcastMessage(event:'typing',payload:{'typing':value}); } catch (_) { /* Ephemeral signal only. */ }
@@ -237,5 +261,5 @@ class UsSpace extends ChangeNotifier {
     await refresh();
   }
   @override
-  void dispose(){_dead=true;session.removeListener(_sessionChanged);_timer?.cancel();_typingTimer?.cancel();unawaited(_disconnect());super.dispose();}
+  void dispose(){_dead=true;WidgetsBinding.instance.removeObserver(this);session.removeListener(_sessionChanged);_timer?.cancel();_typingTimer?.cancel();unawaited(_disconnect());super.dispose();}
 }

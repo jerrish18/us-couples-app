@@ -2,18 +2,26 @@ import subprocess,time
 from pathlib import Path
 
 def adb(*args):
-    return subprocess.check_output(['adb',*args],text=True)
+    return subprocess.check_output(['adb',*args],text=True,timeout=60)
 out=Path('verification');out.mkdir(exist_ok=True)
+print('Installing signed APK',flush=True)
 assert 'Success' in adb('install','-r','release/Us.apk')
+print('Installation succeeded; starting app',flush=True)
 adb('logcat','-c')
-adb('shell','am','start','-W','-n','com.jerrish18.us/.MainActivity')
+print(adb('shell','am','start','-n','com.jerrish18.us/.MainActivity'),flush=True)
 deadline=time.monotonic()+60
 while time.monotonic()<deadline:
     time.sleep(2)
-    adb('shell','uiautomator','dump','/sdcard/us-ui.xml')
+    try:adb('shell','uiautomator','dump','/sdcard/us-ui.xml')
+    except subprocess.TimeoutExpired:
+        (out/'diagnostic.txt').write_text(adb('logcat','-d','-t','300'))
+        raise SystemExit('Android UI dump timed out; diagnostics saved')
     xml=adb('shell','cat','/sdcard/us-ui.xml')
     if 'Welcome back' in xml and 'Continue with Google' in xml:break
-else:raise SystemExit('Signed APK did not reach the login screen')
+else:
+    (out/'last-ui.xml').write_text(xml)
+    (out/'diagnostic.txt').write_text(adb('logcat','-d','-t','300'))
+    raise SystemExit('Signed APK did not reach the login screen')
 (out/'login-ui.xml').write_text(xml)
 with (out/'login.png').open('wb') as file:
     subprocess.run(['adb','exec-out','screencap','-p'],stdout=file,check=True)

@@ -52,9 +52,18 @@ jobs:
           python3 scripts/configure_signing.py
           flutter build apk --release --target-platform android-arm,android-arm64,android-x64
           python3 scripts/verify_apk.py
+      - name: Preserve candidate before emulator test
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-apk-before-install-test
+          path: |
+            release/Us.apk
+            release/Us.apk.sha256
+          retention-days: 7
       - name: Enable emulator acceleration
         run: sudo chmod 666 /dev/kvm
       - name: Install and launch exact signed APK on Android 7
+        timeout-minutes: 10
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 24

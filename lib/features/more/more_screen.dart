@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:home_widget/home_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,6 +83,10 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           else await settings.setLock(false);
         }),
       ])),
+      ListTile(leading:const Icon(Icons.widgets_outlined),title:const Text('Add our home-screen widget'),subtitle:const Text('Days together and today’s mood'),onTap:()=>safely(context,() async {
+        if(await HomeWidget.isRequestPinWidgetSupported()==true)await HomeWidget.requestPinWidget(androidName:'UsWidgetProvider');
+        else if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Long press your home screen, tap Widgets, then choose Us.')));
+      })),
       ...{'messages':'Message notifications','miss_me':'Miss Me notifications','dates':'Date invitations and replies','reminders':'Dates and anniversary reminders','nudges':'Gentle daily nudge (optional)'}.entries.map((e)=>
         SwitchListTile(title:Text(e.value),value:space.preferences[e.key] as bool? ?? e.key!='nudges',onChanged:(v)=>safely(context,()=>space.setPreferences({e.key:v})))),
       ListTile(leading:const Icon(Icons.bedtime_outlined),title:const Text('Quiet hours'),subtitle:Text(space.preferences['quiet_start']==null?'Off':'${space.preferences['quiet_start']} – ${space.preferences['quiet_end']}'),

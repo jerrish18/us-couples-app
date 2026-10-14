@@ -83,6 +83,13 @@ Deno.serve(async req => {
         if(pref?.[toggle]===false || (toggle==="nudges" && pref?.nudges!==true)){
           await api("rpc/finish_push",{p_id:item.id,p_success:true});continue;
         }
+        if(item.kind==="date_reminder"){
+          const dates=await api("dates?id=eq."+encodeURIComponent(item.payload.entity_id)+"&select=starts_at",undefined,"GET");
+          const replies=await api("date_responses?date_id=eq."+encodeURIComponent(item.payload.entity_id)+"&status=eq.declined&select=date_id",undefined,"GET");
+          if(!dates.length||replies.length||(item.payload.starts_at&&new Date(dates[0].starts_at).getTime()!==new Date(item.payload.starts_at).getTime())){
+            await api("rpc/finish_push",{p_id:item.id,p_success:true});continue;
+          }
+        }
         const delay=quietDelay(pref);
         if(delay){ await api("rpc/defer_push",{p_id:item.id,p_until:new Date(Date.now()+delay*60000).toISOString()});continue; }
         const tokens=await api("device_tokens?user_id=eq."+item.recipient_id+"&select=token",undefined,"GET");

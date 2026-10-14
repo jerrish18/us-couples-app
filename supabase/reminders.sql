@@ -30,7 +30,7 @@ begin
       insert into private.push_outbox(couple_id,recipient_id,kind,payload,due_at,unique_key)
       values(r.id,r.user_id,'date_reminder',jsonb_build_object('title','A little time for us',
         'body',case when span=24 then 'Your date is tomorrow.' else 'Your date is in one hour.' end,
-        'route','/calendar','kind','date_reminder','entity_id',d.id::text),p_now,
+        'route','/calendar','kind','date_reminder','entity_id',d.id::text,'starts_at',d.starts_at::text,'hours',span),p_now,
         'date:'||d.id||':'||r.user_id||':'||span||':'||d.starts_at::text) on conflict(unique_key) do nothing;
       get diagnostics inserted=row_count;total:=total+inserted;
      end if;

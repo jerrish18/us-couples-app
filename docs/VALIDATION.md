@@ -1,28 +1,29 @@
-# Validation status
+# Release validation
 
-Backend project: Uss, Mumbai, Supabase Free organization. Application name remains Us.
+The app is not yet cleared for public APK release. Google provider configuration and actual-device push delivery remain unverified.
 
-## Passed on the deployed database
+## Passed
 
-Rollback-only SQL tests use three temporary auth.users rows and switch to the authenticated database role with distinct JWT subjects. Tests leave no users or content behind.
+- Flutter dependency resolution, generated Drift source, Dart analysis, auth validation and offline queue tests.
+- Full debug Android compilation, including the native days/mood widget.
+- Signed release candidate compilation and signature verification against the private release certificate; ARMv7 and ARM64 included; minimum API 24 and application ID checked from the APK itself.
+- SQL tests: partner-only content access, third-user lockout, private journal isolation, shared lists, storage metadata restrictions, atomic five-minute Miss Me cooldown.
+- SQL reminder tests: 24h/1h date offsets, leap-day birthdays, yearly milestones, deduplication, opt-in nudge and restricted scheduler execution.
+- SQL deletion tests: outsiders blocked, idempotent request, new writes/uploads frozen, privileged final cleanup and row cascades.
+- Live REST tests with three disposable real Auth accounts: password login; two simultaneous invite joins with exactly one winner; outsider read/write denial; chat and read receipt; Miss Me cooldown; date acceptance.
+- Live private Realtime WebSocket test: presence and typing reach the partner; third account subscription is denied.
+- Actual private PNG bytes: owner upload, partner signed-URL download, outsider URL signing rejected, partner-initiated deletion removes bytes through Storage API and removes space/chat rows.
+- Disposable test accounts and spaces removed after tests.
+- FCM service-account OAuth and FCM endpoint health confirmed; invalid dummy device token correctly rejected.
+- Security advisor: no warnings/errors; four informational notices are intentional RLS-deny-all internal tables. See https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
 
-- Six-character invitation and owner retrieval.
-- Second member join and read access; duplicate couple creation rejected.
-- Third-account joining, reading, and editing rejected; direct membership insertion blocked.
-- Partner slot cannot be cleared by a client; used invitation consumed.
-- Invitation guessing limited per authenticated account.
-- Partner chat/media reads and shared-list edits permitted.
-- Private journal hidden from the partner; partner cannot mark it shared.
-- Third-account reads blocked across all twelve couple content tables.
-- Third-account chat write, miss-me call, media read/upload rejected.
-- Second miss-me within five minutes rejected; direct insertion cannot bypass the RPC.
+## Outstanding
 
-Storage tests exercise metadata and RLS, not real image bytes or signed URL delivery. A Storage policy qualification bug caught by the tests was fixed in storage_policy_fix.sql; the full content test then passed.
+- Exact signed APK installation/launch on an Android API 24 emulator is running in CI.
+- Google OAuth client and Supabase provider/redirect configuration.
+- Email signup delivery setup: default Supabase SMTP does not support arbitrary recipient addresses. Email confirmation is still enabled, pending the owner's choice.
+- Actual Android phone FCM receipt, notification action, microphone, photo picker, biometric prompts, offline network switching, widget launcher and OS scheduling behavior need real-device checks. An emulator launch is not evidence these work on a physical phone.
 
-Security advisor returned two informational notices for private.invites and private.join_attempts: RLS is enabled without policies. This is intentional deny-by-default protection; direct table access is revoked and only authenticated private functions access them. Reference: https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy
+## Free-tier behavior
 
-## Not yet implemented or verified
-
-Flutter app, Auth UI/real signup, Google OAuth, Drift cache/sync, widget, scheduled reminders, Edge Function push delivery, notification preferences enforcement, Realtime subscriptions, complete data deletion, export, signing secret storage, Actions build, APK install/launch, and release publishing remain pending. Schema/RLS checks are not end-to-end app tests.
-
-No signed APK or release exists yet.
+Supabase cron/push cannot run while a free project is paused. Device reminders provide a backup for dates already synced to that device. Android may delay inexact backup reminders or FCM under battery restrictions. There is no paid fallback or billing upgrade configured.

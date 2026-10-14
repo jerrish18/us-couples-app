@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/session.dart';
@@ -17,7 +18,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   Future<void> _google() async {
     setState(() { _busy=true;_message=null; });
     try { await ref.read(sessionProvider).client.auth.signInWithOAuth(OAuthProvider.google,
-      redirectTo:'com.jerrish18.us://login-callback'); }
+      redirectTo:'com.jerrish18.us://login-callback',authScreenLaunchMode:LaunchMode.externalApplication); }
     on AuthException catch(e){if(mounted)setState(()=>_message=e.message);}
     catch(_){if(mounted)setState(()=>_message='Could not open Google sign-in. Please try again.');}
     finally{if(mounted)setState(()=>_busy=false);}
