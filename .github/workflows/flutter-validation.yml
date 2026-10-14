@@ -1,0 +1,48 @@
+name: Flutter validation
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: flutter-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: false
+      - name: Record toolchain
+        run: flutter --version
+      - name: Prepare Android platform
+        run: |
+          flutter create --platforms=android --org=com.jerrish18 --project-name=us --no-pub /tmp/us_platform
+          cp -R /tmp/us_platform/android ./android
+          python3 scripts/prepare_android.py
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Format source
+        run: dart format lib test
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Test auth validation
+        run: flutter test
+      - name: Compile Android foundation
+        run: flutter build apk --debug
+      - name: Preserve lockfile and generated platform for the release build
+        uses: actions/upload-artifact@v4
+        with:
+          name: validated-platform
+          path: |
+            pubspec.lock
+            android/**
+          retention-days: 1
