@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'local_database.dart';
 import 'session.dart';
 import 'notifications.dart';
+import 'widget.dart';
 
 final spaceProvider = Provider<UsSpace>((ref) {
   final space = UsSpace(ref.read(sessionProvider));
@@ -47,7 +48,7 @@ class UsSpace extends ChangeNotifier {
     if (uid == _uid && cid == _cid) { _notify(); return; }
     await _disconnect();
     _uid = uid; _cid = cid; rows.clear(); queued = 0; partnerOnline = false; partnerTyping = false;
-    if (uid == null || cid == null) { loading = false; _notify(); return; }
+    if (uid == null || cid == null) { await UsWidget.clear(); loading = false; _notify(); return; }
     final db = LocalDatabase(uid); _db = db;
     for (final table in tables) {
       final cached = await db.readRows(table);
@@ -115,7 +116,10 @@ class UsSpace extends ChangeNotifier {
         if (!_current(uid,cid)) return;
       }
       rows.addAll(next); await _mergePending(); online=true;error=null;
-      await UsNotifications.reminders(rows,preferences,me?['timezone'] as String? ?? 'Asia/Kolkata');
+      try {
+        await UsWidget.update(session.couple,partner);
+        await UsNotifications.reminders(rows,preferences,me?['timezone'] as String? ?? 'Asia/Kolkata');
+      } catch (_) { /* Device scheduling failures do not turn a successful sync into an offline state. */ }
     } catch (_) {
       if (!_current(uid,cid)) return;
       online=false;error='You are offline. Chat stays here and sends when you reconnect.';
@@ -124,10 +128,11 @@ class UsSpace extends ChangeNotifier {
   }
   Future<void> _mergePending() async {
     final db=_db; if(db==null)return;
-    final pending=await db.pending();queued=pending.length;
+    final pending=await db.pending();queued=0;
     for(final task in pending) {
       final value=Map<String,dynamic>.from(jsonDecode(task.payload) as Map);
       if(value['couple_id'] != _cid) continue;
+      queued++;
       value['_pending']=true;value['_local_file']=task.localFile;value['_failure']=task.failure;
       final list=rows.putIfAbsent(task.tableNameKey,()=>[]);
       list.removeWhere((r)=>r['id']==task.taskId);list.add(value);
@@ -167,6 +172,7 @@ class UsSpace extends ChangeNotifier {
           }
           if(!_current(uid,cid))break;
           await session.client.from(task.tableNameKey).upsert(row,onConflict:'id',ignoreDuplicates:true);
+          if(!_current(uid,cid))break;
           await db.complete(task.taskId);
         }catch(e){
           await db.fail(task.taskId,e is StateError?e.message.toString():'Waiting for connection',task.attempts+1);

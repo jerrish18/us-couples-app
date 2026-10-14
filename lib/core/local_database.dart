@@ -40,7 +40,9 @@ class LocalDatabase extends _$LocalDatabase {
   Future<void> replaceRows(String table, List<Map<String, dynamic>> rows) => transaction(() async {
     await (delete(cachedRows)..where((r) => r.tableNameKey.equals(table))).go();
     for (final row in rows) {
-      final id = (row['id'] ?? row['user_id'] ?? '${row['message_id']}:${row['user_id']}').toString();
+      final id = (table == 'message_states' ? '${row['message_id']}:${row['user_id']}'
+        : table == 'date_responses' ? '${row['date_id']}:${row['user_id']}'
+        : row['id'] ?? row['user_id']).toString();
       await into(cachedRows).insertOnConflictUpdate(CachedRowsCompanion.insert(tableNameKey: table, rowId: id, payload: jsonEncode(row)));
     }
   });
