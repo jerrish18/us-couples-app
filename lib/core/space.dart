@@ -19,7 +19,7 @@ final spaceProvider = Provider<UsSpace>((ref) {
 class UsSpace extends ChangeNotifier {
   UsSpace(this.session) {
     session.addListener(_sessionChanged);
-    _timer = Timer.periodic(const Duration(seconds: 25), (_) => sync());
+    _timer = Timer.periodic(const Duration(seconds: 25), (_) async { await session.refresh();await sync(); });
     unawaited(_sessionChanged());
   }
   final UsSession session;
@@ -46,6 +46,7 @@ class UsSpace extends ChangeNotifier {
     if (_dead) return;
     final uid = session.userId, cid = session.coupleId;
     if (uid == _uid && cid == _cid) { _notify(); return; }
+    if(uid==_uid && cid==null && _cid!=null)await eraseLocal();
     await _disconnect();
     _uid = uid; _cid = cid; rows.clear(); queued = 0; partnerOnline = false; partnerTyping = false;
     if (uid == null || cid == null) { await UsWidget.clear(); loading = false; _notify(); return; }
@@ -118,7 +119,7 @@ class UsSpace extends ChangeNotifier {
       rows.addAll(next); await _mergePending(); online=true;error=null;
       try {
         await UsWidget.update(session.couple,partner);
-        await UsNotifications.reminders(rows,preferences,me?['timezone'] as String? ?? 'Asia/Kolkata');
+        await UsNotifications.reminders(rows,preferences,me?['timezone'] as String? ?? 'Asia/Kolkata',couple:session.couple);
       } catch (_) { /* Device scheduling failures do not turn a successful sync into an offline state. */ }
     } catch (_) {
       if (!_current(uid,cid)) return;
@@ -137,6 +138,12 @@ class UsSpace extends ChangeNotifier {
       final list=rows.putIfAbsent(task.tableNameKey,()=>[]);
       list.removeWhere((r)=>r['id']==task.taskId);list.add(value);
     }
+  }
+  Future<void> eraseLocal() async {
+    final db=_db;
+    if(db!=null){for(final task in await db.pending()){if(task.localFile!=null){try{await File(task.localFile!).delete();}catch(_){}}}await db.clear();}
+    rows.clear();queued=0;await UsWidget.clear();
+    await UsNotifications.plugin.cancelAll();
   }
   Future<void> send(String body,{String? file,String? kind,String? replyTo,bool memory=false,String? caption,DateTime? memoryDate}) async {
     final cid=_cid,uid=_uid,db=_db;
@@ -174,6 +181,7 @@ class UsSpace extends ChangeNotifier {
           await session.client.from(task.tableNameKey).upsert(row,onConflict:'id',ignoreDuplicates:true);
           if(!_current(uid,cid))break;
           await db.complete(task.taskId);
+          if(task.localFile!=null){try{await File(task.localFile!).delete();}catch(_){}}
         }catch(e){
           await db.fail(task.taskId,e is StateError?e.message.toString():'Waiting for connection',task.attempts+1);
           online=false;break;

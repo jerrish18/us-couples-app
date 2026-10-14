@@ -14,6 +14,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _password = TextEditingController();
   bool _signup = false, _busy = false, _obscure = true;
   String? _message;
+  Future<void> _google() async {
+    setState(() { _busy=true;_message=null; });
+    try { await ref.read(sessionProvider).client.auth.signInWithOAuth(OAuthProvider.google,
+      redirectTo:'com.jerrish18.us://login-callback'); }
+    on AuthException catch(e){if(mounted)setState(()=>_message=e.message);}
+    catch(_){if(mounted)setState(()=>_message='Could not open Google sign-in. Please try again.');}
+    finally{if(mounted)setState(()=>_busy=false);}
+  }
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     setState(() { _busy = true; _message = null; });
@@ -67,6 +75,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             : Text(_signup ? 'Create account' : 'Sign in')),
           TextButton(onPressed: _busy ? null : () => setState(() { _signup = !_signup; _message = null; }),
             child: Text(_signup ? 'Already have an account? Sign in' : 'New here? Create an account')),
+          const SizedBox(height:12),
+          OutlinedButton.icon(onPressed:_busy?null:_google,icon:const Icon(Icons.account_circle_outlined),label:const Text('Continue with Google')),
         ],
       )),
     )),

@@ -100,7 +100,7 @@ class UsNotifications {
       }finally{await db.close();}
     }catch(_){/* The action must not leak account details in a notification. */}
   }
-  static Future<void> reminders(Map<String,List<Map<String,dynamic>>> rows,Map<String,dynamic> preferences,String timezone) async {
+  static Future<void> reminders(Map<String,List<Map<String,dynamic>>> rows,Map<String,dynamic> preferences,String timezone,{Map<String,dynamic>? couple}) async {
     await initialize();
     final old=(await storage.read(key:'us.reminder.ids')??'').split(',').map(int.tryParse).whereType<int>();
     for(final id in old){await plugin.cancel(id);}
@@ -108,12 +108,23 @@ class UsNotifications {
     final ids=<int>[];tz.Location location;try{location=tz.getLocation(timezone);}catch(_){location=tz.getLocation('Asia/Kolkata');}
     Future<void> schedule(String key,String title,String body,DateTime due) async {
       if(due.isBefore(DateTime.now()))return;
+      var localDue=tz.TZDateTime.from(due,location);
+      int minutes(String v)=>int.parse(v.substring(0,2))*60+int.parse(v.substring(3,5));
+      final startValue=preferences['quiet_start'] as String?,endValue=preferences['quiet_end'] as String?;
+      if(startValue!=null&&endValue!=null){
+        final start=minutes(startValue),end=minutes(endValue),current=localDue.hour*60+localDue.minute;
+        if(start==end)return;
+        final quiet=start<end?current>=start&&current<end:current>=start||current<end;
+        if(quiet){final tomorrow=start>end&&current>=start;
+          localDue=tz.TZDateTime(location,localDue.year,localDue.month,localDue.day+(tomorrow?1:0),end~/60,end%60);}
+      }
       final id=stableNotificationId(key);ids.add(id);
-      await plugin.zonedSchedule(id,title,body,tz.TZDateTime.from(due,location),
+      await plugin.zonedSchedule(id,title,body,localDue,
         const NotificationDetails(android:AndroidNotificationDetails('us_dates','Dates and reminders',importance:Importance.high)),
         androidScheduleMode:AndroidScheduleMode.inexactAllowWhileIdle,payload:jsonEncode({'route':'/calendar'}));
     }
     for(final date in rows['dates']??<Map<String,dynamic>>[]){
+      if((rows['date_responses']??[]).any((r)=>r['date_id']==date['id']&&r['status']=='declined'))continue;
       final when=DateTime.tryParse(date['starts_at'] as String? ?? '');if(when==null)continue;
       for(final hours in [24,1])await schedule('date:${date['id']}:$hours','A little time for us',
         '${date['title']} is ${hours==24?'tomorrow':'in one hour'}.',when.subtract(Duration(hours:hours)));
@@ -125,6 +136,17 @@ class UsNotifications {
       final day=date['yearly']==true?annual:original;
       final due=tz.TZDateTime(location,day.year,day.month,day.day,9);
       await schedule('anniversary:${date['id']}:${day.year}',date['title'] as String,'A special day for the two of you.',due);
+    }
+    final since=DateTime.tryParse(couple?['together_since'] as String? ?? '');
+    if(since!=null){
+      for(final days in [100,200,500,1000]){
+        final day=DateTime(since.year,since.month,since.day+days);
+        await schedule('milestone:${couple!['id']}:days:$days','$days days together ❤️','A little milestone in your story.',tz.TZDateTime(location,day.year,day.month,day.day,9));
+      }
+      for(var year=1;year<=5;year++){
+        final day=nextAnnualDate(since,DateTime(since.year+year,1,1));
+        await schedule('milestone:${couple!['id']}:years:$year','$year ${year==1?'year':'years'} together ❤️','A special day for the two of you.',tz.TZDateTime(location,day.year,day.month,day.day,9));
+      }
     }
     await storage.write(key:'us.reminder.ids',value:ids.join(','));
   }

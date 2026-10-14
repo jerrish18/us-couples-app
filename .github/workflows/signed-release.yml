@@ -53,7 +53,7 @@ jobs:
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Build universal signed release APK
-        run: flutter build apk --release --target-platform android-arm,android-arm64
+        run: flutter build apk --release --target-platform android-arm,android-arm64,android-x64
       - name: Verify release signature and architectures
         run: python3 scripts/verify_apk.py
       - name: Publish GitHub Release

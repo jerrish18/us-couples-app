@@ -59,8 +59,11 @@ class UsSession extends ChangeNotifier {
       }
     } catch (_) {
       if (_disposed || generation != _generation) return;
-      final saved=uid==null?null:await const FlutterSecureStorage().read(key:'us.couple.$uid');
-      couple=saved==null?null:Map<String,dynamic>.from(jsonDecode(saved) as Map);
+      try {
+        final saved=uid==null?null:await const FlutterSecureStorage().read(key:'us.couple.$uid');
+        if (_disposed || generation != _generation) return;
+        couple=saved==null?null:Map<String,dynamic>.from(jsonDecode(saved) as Map);
+      } catch (_) { couple=null; }
       error = 'Could not connect. Check your internet and try again.';
       if(couple!=null)error=null;
     }

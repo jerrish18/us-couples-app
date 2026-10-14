@@ -14,7 +14,15 @@ sdk = Path(os.environ.get('ANDROID_HOME', os.environ.get('ANDROID_SDK_ROOT', '')
 tools = sorted((sdk / 'build-tools').glob('*/apksigner'))
 if not tools:
     raise SystemExit('Cannot verify Android signature: apksigner missing')
-subprocess.run([str(tools[-1]), 'verify', '--verbose', '--print-certs', str(apk)], check=True)
+signature = subprocess.check_output([str(tools[-1]), 'verify', '--verbose', '--print-certs', str(apk)],text=True)
+expected = '6daa58c1d39fe99deb2dc344db77c9a7f108014ad23dd17f20bca342c32547c0'
+if expected not in signature.lower().replace(':',''):
+    raise SystemExit('APK is signed by an unexpected certificate')
+print(signature)
+aapt = tools[-1].parent / 'aapt'
+badging = subprocess.check_output([str(aapt),'dump','badging',str(apk)],text=True)
+if "sdkVersion:'24'" not in badging or "name='com.jerrish18.us'" not in badging:
+    raise SystemExit('APK package or minimum Android version is incorrect')
 out = Path('release');out.mkdir(exist_ok=True)
 target = out / 'Us.apk';shutil.copyfile(apk, target)
 (out / 'Us.apk.sha256').write_text(hashlib.sha256(target.read_bytes()).hexdigest() + '  Us.apk\n')

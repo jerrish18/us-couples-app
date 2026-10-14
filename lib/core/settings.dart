@@ -11,7 +11,7 @@ class DeviceSettings extends ChangeNotifier {
   ThemeMode theme=ThemeMode.system;
   bool ready=false,locked=false;
   String? pin;
-  Future<void> load() async {theme=ThemeMode.values[int.tryParse(await storage.read(key:'us.theme')??'0')??0];
+  Future<void> load() async {theme=ThemeMode.values[(int.tryParse(await storage.read(key:'us.theme')??'0')??0).clamp(0,ThemeMode.values.length-1)];
     locked=await storage.read(key:'us.lock')=='true';pin=await storage.read(key:'us.pin');ready=true;notifyListeners();}
   Future<void> setTheme(ThemeMode value) async {theme=value;await storage.write(key:'us.theme',value:value.index.toString());notifyListeners();}
   Future<void> setLock(bool value,{String? newPin}) async {locked=value;if(newPin!=null){pin=newPin;await storage.write(key:'us.pin',value:newPin);}

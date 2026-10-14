@@ -44,8 +44,10 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
         FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Delete all space data'))]));
     if(yes!=true||!mounted)return;
     await safely(context,() async {final response=await space.session.client.functions.invoke('delete-space',body:{'couple_id':space.session.coupleId});
-      if(response.status!=200)throw StateError('Deletion not completed');
-      await UsNotifications.unregister(space.session);await space.session.refresh();});
+      if(response.status!=200 && response.status!=202)throw StateError('Deletion not completed');
+      await space.eraseLocal();await space.session.refresh();
+      try{await UsNotifications.unregister(space.session);}catch(_){/* Retry cleanup on the next launch. */}
+      if(response.status==202&&mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('Deletion started. Remaining files will be removed automatically.')));});
   }
   @override Widget build(BuildContext context){final space=ref.watch(spaceProvider),settings=ref.watch(settingsProvider);
     return ListenableBuilder(listenable:space,builder:(context,_)=>ListView(padding:const EdgeInsets.fromLTRB(20,10,20,30),children:[

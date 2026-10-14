@@ -40,16 +40,18 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         ...shown.map((date){
           final mine=date['author_id']==space.session.userId;
           final response=(space.rows['date_responses']??[]).where((r)=>r['date_id']==date['id']&&r['user_id']!=date['author_id']).firstOrNull;
+          final authorResponse=(space.rows['date_responses']??[]).where((r)=>r['date_id']==date['id']&&r['user_id']==date['author_id']).firstOrNull;
+          final acceptedSuggestion=response?['status']=='suggested'&&authorResponse?['status']=='accepted'&&DateTime.tryParse(response?['proposed_at'] as String? ?? '')==DateTime.tryParse(date['starts_at'] as String);
           return Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text(date['title'] as String,style:Theme.of(context).textTheme.titleLarge),const SizedBox(height:10),
             Text('${displayDate(date['starts_at'] as String)} · ${displayTime(date['starts_at'] as String)}'),
             if((date['place'] as String).isNotEmpty)Padding(padding:const EdgeInsets.only(top:8),child:Text('📍 ${date['place']}')),
             if((date['notes'] as String).isNotEmpty)Padding(padding:const EdgeInsets.only(top:8),child:Text(date['notes'] as String)),
-            const SizedBox(height:12),Text(response==null?'Waiting for a reply':response['status']=='suggested'
+            const SizedBox(height:12),Text(acceptedSuggestion?'Accepted ❤️':response==null?'Waiting for a reply':response['status']=='suggested'
               ?'Suggested: ${displayDate(response['proposed_at'] as String)} · ${displayTime(response['proposed_at'] as String)}'
               :response['status']=='accepted'?'Accepted ❤️':'Declined'),
             Wrap(spacing:8,children:mine?[
-              if(response?['status']=='suggested')TextButton(onPressed:()=>safely(context,() async {
+              if(response?['status']=='suggested'&&!acceptedSuggestion)TextButton(onPressed:()=>safely(context,() async {
                 await space.update('dates',date['id'] as String,{'starts_at':response!['proposed_at']});
                 await space.respond(date['id'] as String,'accepted');}),child:const Text('Accept suggested time')),
               TextButton(onPressed:()=>safely(context,()=>space.remove('dates',date['id'] as String)),child:const Text('Remove date')),
