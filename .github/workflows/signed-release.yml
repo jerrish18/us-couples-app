@@ -1,5 +1,7 @@
 name: Signed Android release
 on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
   workflow_dispatch:
     inputs:
       tag:
@@ -57,10 +59,23 @@ jobs:
         run: flutter build apk --release --target-platform android-arm,android-arm64,android-x64
       - name: Verify release signature and architectures
         run: python3 scripts/verify_apk.py
+      - name: Enable emulator acceleration
+        run: |
+          android/gradlew --stop
+          sudo chmod 666 /dev/kvm
+      - name: Install and launch the release APK on Android 7
+        timeout-minutes: 10
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 24
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
+          script: python3 scripts/emulator_smoke.py
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
           gh release create "$TAG" release/Us.apk release/Us.apk.sha256 --target "$GITHUB_SHA" --title "Us $TAG" --notes-file docs/RELEASE_NOTES.md

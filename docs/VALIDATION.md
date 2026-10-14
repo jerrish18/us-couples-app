@@ -17,11 +17,13 @@ The app is not yet cleared for public APK release. Google provider configuration
 - FCM service-account OAuth and FCM endpoint health confirmed; invalid dummy device token correctly rejected.
 - Security advisor: no warnings/errors; four informational notices are intentional RLS-deny-all internal tables. See https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy.
 
+- Confirmed signed candidate installs on an API 24 emulator. Its launch exposed a WorkManager/Room reflection constructor removed by R8; a targeted constructor keep rule is under CI validation.
+
 ## Outstanding
 
 - Exact signed APK installation/launch on an Android API 24 emulator is running in CI.
-- Google OAuth client and Supabase provider/redirect configuration.
-- Email signup delivery setup: default Supabase SMTP does not support arbitrary recipient addresses. Email confirmation is still enabled, pending the owner's choice.
+- Google OAuth client and Supabase Google provider configuration. App redirect allowlist and default callback are configured.
+- Email confirmation remains enabled by the owner's choice. Custom Gmail SMTP settings are saved with an encrypted credential entered by the owner. Actual signup-email receipt has not yet been verified.
 - Actual Android phone FCM receipt, notification action, microphone, photo picker, biometric prompts, offline network switching, widget launcher and OS scheduling behavior need real-device checks. An emulator launch is not evidence these work on a physical phone.
 
 ## Free-tier behavior
