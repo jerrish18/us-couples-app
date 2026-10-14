@@ -1,5 +1,7 @@
 name: Flutter validation
 on:
+  push:
+    branches: [build/flutter-foundation]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -47,4 +49,6 @@ jobs:
           path: |
             pubspec.lock
             android/**
+            lib/**
+            test/**
           retention-days: 1
