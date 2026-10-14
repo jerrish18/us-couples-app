@@ -1,0 +1,24 @@
+name: Repository checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  repository-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Reject committed signing and private credential files
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          from pathlib import PurePosixPath
+          files = subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0')
+          blocked = [f for f in files if f and (f.endswith(('.jks', '.keystore')) or PurePosixPath(f).name in ('key.properties', 'google-services.json') or PurePosixPath(f).name.startswith(('service-account', 'firebase-admin')))]
+          if blocked:
+              raise SystemExit('Private configuration or signing files must be stored outside Git.')
+          print('Signing-material repository check passed.')
+          PY
