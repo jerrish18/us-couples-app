@@ -5,7 +5,7 @@ def adb(*args):
     return subprocess.check_output(['adb',*args],text=True,timeout=60)
 out=Path('verification');out.mkdir(exist_ok=True)
 print('Installing signed APK',flush=True)
-assert 'Success' in adb('install','-r','release/Us.apk')
+assert 'Success' in adb('install','--no-streaming','-r','release/Us.apk')
 print('Installation succeeded; starting app',flush=True)
 adb('logcat','-c')
 print(adb('shell','am','start','-n','com.jerrish18.us/.MainActivity'),flush=True)

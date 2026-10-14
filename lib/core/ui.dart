@@ -46,12 +46,19 @@ class PrivatePhoto extends StatefulWidget {
 }
 class _PrivatePhotoState extends State<PrivatePhoto> {
   late Future<String> _url;
-  @override void initState(){super.initState();_url=widget.space.mediaFile(widget.path);}
-  @override void didUpdateWidget(covariant PrivatePhoto old){super.didUpdateWidget(old);if(old.path!=widget.path)_url=widget.space.mediaFile(widget.path);}
+  late bool _online;
+  Future<String> _source()=>widget.localFile!=null&&File(widget.localFile!).existsSync()
+    ?Future.value(widget.localFile!):widget.space.mediaFile(widget.path);
+  @override void initState(){super.initState();_online=widget.space.online;_url=_source();}
+  @override void didUpdateWidget(covariant PrivatePhoto old){super.didUpdateWidget(old);
+    if(old.path!=widget.path||old.localFile!=widget.localFile||(!_online&&widget.space.online))_url=_source();
+    _online=widget.space.online;
+  }
   @override Widget build(BuildContext context)=>ClipRRect(borderRadius:BorderRadius.circular(20),child:
     widget.localFile!=null&&File(widget.localFile!).existsSync()?Image.file(File(widget.localFile!),height:widget.height,width:double.infinity,fit:BoxFit.cover):
     FutureBuilder<String>(future:_url,builder:(context,snapshot)=>snapshot.hasData
       ?Image.file(File(snapshot.data!),height:widget.height,width:double.infinity,fit:BoxFit.cover,
         errorBuilder:(_,e,st)=>_placeholder()) : _placeholder()));
-  Widget _placeholder()=>SizedBox(height:widget.height,child:const Center(child:Icon(Icons.image_outlined,size:46)));
+  Widget _placeholder()=>SizedBox(height:widget.height,child:Center(child:TextButton.icon(
+    onPressed:()=>setState(()=>_url=_source()),icon:const Icon(Icons.image_outlined),label:const Text('Load photo'))));
 }

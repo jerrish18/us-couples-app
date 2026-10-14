@@ -22,6 +22,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.7
           cache: false
       - name: Record toolchain
         run: flutter --version
@@ -61,7 +62,9 @@ jobs:
             release/Us.apk.sha256
           retention-days: 7
       - name: Enable emulator acceleration
-        run: sudo chmod 666 /dev/kvm
+        run: |
+          android/gradlew --stop
+          sudo chmod 666 /dev/kvm
       - name: Install and launch exact signed APK on Android 7
         timeout-minutes: 10
         uses: reactivecircus/android-emulator-runner@v2
