@@ -23,13 +23,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     catch(_){if(mounted)setState(()=>_message='Could not open Google sign-in. Please try again.');}
     finally{if(mounted)setState(()=>_busy=false);}
   }
+  Future<void> _resend() async {
+    final email = _email.text.trim();
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      setState(() => _message = 'Enter your email address first.');
+      return;
+    }
+    setState(() { _busy = true; _message = null; });
+    try {
+      await ref.read(sessionProvider).client.auth.resend(type: OtpType.signup,
+        email: email, emailRedirectTo: 'com.jerrish18.us://login-callback');
+      if (mounted) setState(() => _message = 'Check your inbox and spam folder for the confirmation email.');
+    } on AuthException catch (e) {
+      if (mounted) setState(() => _message = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _message = 'Could not resend. Please try again.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     setState(() { _busy = true; _message = null; });
     try {
       final client = ref.read(sessionProvider).client;
       if (_signup) {
-        final response = await client.auth.signUp(email: _email.text.trim(), password: _password.text);
+        final response = await client.auth.signUp(email: _email.text.trim(), password: _password.text, emailRedirectTo: 'com.jerrish18.us://login-callback');
         if (mounted && response.session == null) {
           setState(() => _message = 'Check your email to confirm your account, then sign in.');
         }
@@ -76,6 +95,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             : Text(_signup ? 'Create account' : 'Sign in')),
           TextButton(onPressed: _busy ? null : () => setState(() { _signup = !_signup; _message = null; }),
             child: Text(_signup ? 'Already have an account? Sign in' : 'New here? Create an account')),
+          TextButton(onPressed: _busy ? null : _resend, child: const Text('Resend confirmation email')),
           const SizedBox(height:12),
           OutlinedButton.icon(onPressed:_busy?null:_google,icon:const Icon(Icons.account_circle_outlined),label:const Text('Continue with Google')),
         ],

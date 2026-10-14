@@ -48,3 +48,10 @@ for styles in Path('android/app/src/main/res').glob('values*/styles.xml'):
 # The plugin allows floating Glance versions; hold the tested stable ABI/API.
 root_gradle = Path('android/build.gradle.kts')
 root_gradle.write_text(root_gradle.read_text()+'\nsubprojects {\n    configurations.configureEach {\n        resolutionStrategy.eachDependency {\n            if (requested.group == "androidx.glance") useVersion("1.1.1")\n        }\n    }\n}\n')
+
+# WorkManager constructs this Room database through reflection at process startup.
+# Preserve its no-argument constructor in the signed R8 release build.
+Path('android/app/proguard-rules.pro').write_text(
+    '-keep class androidx.work.impl.WorkDatabase_Impl { public <init>(); }\n')
+gradle.write_text(gradle.read_text().replace('buildTypes {',
+    'buildTypes {\n        release { proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }'))
