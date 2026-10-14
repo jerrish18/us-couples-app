@@ -1,4 +1,3 @@
-
 -- Membership can only change through authenticated, transactional pairing RPCs.
 create schema if not exists private;
 revoke all on schema private from public, anon;

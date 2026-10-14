@@ -10,7 +10,7 @@ begin
     (b,b::text||'@example.invalid','authenticated','authenticated'),
     (third,third::text||'@example.invalid','authenticated','authenticated');
   insert into public.couples(owner_id,partner_id) values(a,b) returning id into cid;
-  insert into public.profiles(user_id,couple_id) values(a,cid);
+  insert into public.profiles(user_id,couple_id) values(a,cid) on conflict(user_id) do nothing;
   insert into public.messages(id,couple_id,sender_id,body) values(msg,cid,a,'Private chat');
   insert into public.message_states(message_id,couple_id,user_id) values(msg,cid,a);
   insert into public.memories(id,couple_id,author_id,media_path) values(mem,cid,a,cid||'/'||a||'/test.jpg');

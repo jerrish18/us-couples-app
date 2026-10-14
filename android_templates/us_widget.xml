@@ -1,0 +1,8 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+ android:id="@+id/us_widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
+ android:orientation="vertical" android:gravity="center" android:padding="16dp" android:background="@drawable/us_widget_background">
+ <TextView android:id="@+id/us_widget_days" android:layout_width="match_parent" android:layout_height="wrap_content"
+ android:gravity="center" android:text="Us ♥" android:textSize="22sp" android:textStyle="bold" android:textColor="#923C50"/>
+ <TextView android:id="@+id/us_widget_mood" android:layout_width="match_parent" android:layout_height="wrap_content"
+ android:gravity="center" android:layout_marginTop="8dp" android:text="Open Us to check in" android:textSize="14sp" android:textColor="#573C42"/>
+</LinearLayout>

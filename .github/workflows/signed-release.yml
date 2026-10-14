@@ -1,0 +1,91 @@
+name: Signed Android release
+on:
+  push:
+    branches: [main]
+    paths: [docs/release-ready.json]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release version
+        required: true
+        default: v1.0.0
+permissions:
+  contents: write
+concurrency:
+  group: signed-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Require completed release validation
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report = Path('docs/release-ready.json')
+          if not report.exists() or json.loads(report.read_text()).get('ready') is not True:
+              raise SystemExit('The complete app has not been cleared for release.')
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7
+          cache: false
+      - name: Prepare Android platform
+        run: |
+          flutter create --platforms=android --org=com.jerrish18 --project-name=us --no-pub /tmp/us_platform
+          cp -R /tmp/us_platform/android ./android
+          python3 scripts/prepare_android.py
+      - name: Configure private signing key
+        env:
+          US_KEYSTORE_B64: ${{ secrets.US_KEYSTORE_B64 }}
+          US_STORE_PASSWORD: ${{ secrets.US_STORE_PASSWORD }}
+          US_KEY_PASSWORD: ${{ secrets.US_KEY_PASSWORD }}
+          US_KEY_ALIAS: ${{ secrets.US_KEY_ALIAS }}
+        run: python3 scripts/configure_signing.py
+      - name: Resolve and validate
+        run: |
+          flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+          flutter test
+      - name: Build universal signed release APK
+        run: flutter build apk --release --target-platform android-arm,android-arm64,android-x64
+      - name: Verify release signature and architectures
+        run: python3 scripts/verify_apk.py
+      - name: Enable emulator acceleration
+        run: |
+          android/gradlew --stop
+          sudo chmod 666 /dev/kvm
+      - name: Install and launch the release APK on Android 7
+        timeout-minutes: 10
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 24
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-metrics
+          script: python3 scripts/emulator_smoke.py
+      - name: Preserve install and launch evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-verification
+          path: verification/**
+          retention-days: 7
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || 'v1.0.0' }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || exit 1
+          gh release create "$TAG" release/Us.apk release/Us.apk.sha256 --target "$GITHUB_SHA" --title "Us $TAG" --notes-file docs/RELEASE_NOTES.md
+      - name: Remove temporary signing material
+        if: always()
+        run: rm -f android/app/us-release.jks android/key.properties
