@@ -49,6 +49,7 @@ jobs:
       - name: Resolve and validate
         run: |
           flutter pub get
+          dart run build_runner build --delete-conflicting-outputs
           flutter analyze --no-fatal-infos --no-fatal-warnings
           flutter test
       - name: Build universal signed release APK

@@ -31,7 +31,9 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
       - name: Format source
-        run: dart format lib test
+        run: |
+          dart run build_runner build --delete-conflicting-outputs
+          dart format lib test
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Test auth validation

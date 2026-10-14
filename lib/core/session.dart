@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,10 +52,17 @@ class UsSession extends ChangeNotifier {
           .select().or('owner_id.eq.$uid,partner_id.eq.$uid').maybeSingle();
       if (_disposed || generation != _generation) return;
       couple = data;
+      if(uid!=null){
+        const storage=FlutterSecureStorage();
+        if(data==null)await storage.delete(key:'us.couple.$uid');
+        else await storage.write(key:'us.couple.$uid',value:jsonEncode(data));
+      }
     } catch (_) {
       if (_disposed || generation != _generation) return;
-      couple = null;
+      final saved=uid==null?null:await const FlutterSecureStorage().read(key:'us.couple.$uid');
+      couple=saved==null?null:Map<String,dynamic>.from(jsonDecode(saved) as Map);
       error = 'Could not connect. Check your internet and try again.';
+      if(couple!=null)error=null;
     }
     ready = true;
     if (!_disposed) notifyListeners();

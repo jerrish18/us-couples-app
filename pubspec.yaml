@@ -13,7 +13,23 @@ dependencies:
   firebase_core: 4.15.0
   firebase_messaging: 16.7.0
   flutter_secure_storage: 9.2.4
+  drift: 2.28.2
+  sqlite3_flutter_libs: 0.5.40
+  path_provider: 2.1.6
+  uuid: 4.5.1
+  image_picker: 1.2.4
+  flutter_image_compress: 2.4.0
+  record: 6.1.2
+  just_audio: 0.10.6
+  flutter_local_notifications: 19.5.0
+  timezone: 0.10.1
+  home_widget: 0.8.0
+  local_auth: 2.3.0
+  share_plus: 11.1.0
+  archive: 3.6.1
 dev_dependencies:
+  drift_dev: 2.28.2
+  build_runner: 2.7.1
   flutter_test:
     sdk: flutter
 flutter:
