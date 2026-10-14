@@ -55,3 +55,7 @@ Path('android/app/proguard-rules.pro').write_text(
     '-keep class androidx.work.impl.WorkDatabase_Impl { public <init>(); }\n')
 gradle.write_text(gradle.read_text().replace('buildTypes {',
     'buildTypes {\n        release { proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro") }'))
+
+# Dart references this drawable by string, so Android cannot discover its use.
+raw=Path('android/app/src/main/res/raw');raw.mkdir(exist_ok=True)
+(raw/'keep.xml').write_text('<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/us_notification"/>')

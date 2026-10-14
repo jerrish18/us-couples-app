@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
@@ -22,13 +23,19 @@ import 'features/pairing/pair_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  var stage = 'Firebase';
   try {
     await Firebase.initializeApp(options: firebaseOptions);
+    stage = 'Supabase';
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey,
       authOptions: FlutterAuthClientOptions(localStorage: SecureSessionStorage()));
+    stage = 'local notifications';
     await UsNotifications.initialize();
     runApp(const ProviderScope(child: UsApp()));
-  } catch (_) {
+  } catch (error) {
+    // Startup diagnostics contain the component and error code, never credentials.
+    debugPrint('Us startup failed at $stage: ${error.runtimeType}');
+    if (error is PlatformException) debugPrint('Us platform error: ${error.code}');
     runApp(MaterialApp(theme: usTheme(Brightness.light), home: Scaffold(body: Center(child: Padding(
       padding: const EdgeInsets.all(32), child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.favorite_outline, size: 56), const SizedBox(height: 20),
