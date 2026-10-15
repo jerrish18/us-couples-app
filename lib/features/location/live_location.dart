@@ -50,7 +50,7 @@ class LiveLocation extends ChangeNotifier {
       until=DateTime.now().add(duration);lastSent=null;
       final position=await Geolocator.getCurrentPosition(locationSettings:const LocationSettings(accuracy:LocationAccuracy.best,timeLimit:Duration(seconds:30)));
       await _send(position);
-      _positions=Geolocator.getPositionStream(locationSettings:AndroidSettings(accuracy:LocationAccuracy.bestForNavigation,distanceFilter:5,intervalDuration:const Duration(seconds:5),
+      _positions=Geolocator.getPositionStream(locationSettings:AndroidSettings(accuracy:LocationAccuracy.bestForNavigation,distanceFilter:0,intervalDuration:const Duration(seconds:5),
         foregroundNotificationConfig:const ForegroundNotificationConfig(notificationTitle:'Us · Live location is on',notificationText:'Your partner can see your position. Open Us → Live location to stop.',enableWakeLock:true,setOngoing:true)))
         .listen((p)=>unawaited(_send(p)),onError:(Object _){error='GPS paused. Check Location and battery settings.';_notify();});
     }catch(e){await stop();error=e is StateError?e.message.toString():'Could not get your position. Try outdoors with Location on.';}
