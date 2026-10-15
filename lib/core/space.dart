@@ -284,6 +284,13 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
         ? payload.oldRecord
         : payload.newRecord;
     final key = rowKey(table, data), list = rows.putIfAbsent(table, () => []);
+    if (table == 'memories' &&
+        payload.eventType == PostgresChangeEvent.delete &&
+        _cid != null) {
+      final removed = list.where((r) => rowKey(table, r) == key).firstOrNull;
+      if (removed != null)
+        unawaited(_evictMemoryPhoto(removed['media_path'] as String, _cid!));
+    }
     // Deletes without the complete key are repaired by the next foreground refresh.
     list.removeWhere((r) => rowKey(table, r) == key);
     if (payload.eventType != PostgresChangeEvent.delete)

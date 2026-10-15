@@ -154,7 +154,7 @@ ThemeData usTheme(Brightness brightness) {
       space: 28,
     ),
     pageTransitionsTheme: const PageTransitionsTheme(
-      builders: {TargetPlatform.android: CupertinoPageTransitionsBuilder()},
+      builders: {TargetPlatform.android: FadeForwardsPageTransitionsBuilder()},
     ),
   );
 }
