@@ -1,8 +1,11 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
  android:id="@+id/us_widget_root" android:layout_width="match_parent" android:layout_height="match_parent"
- android:orientation="vertical" android:gravity="center" android:padding="16dp" android:background="@drawable/us_widget_background">
+ android:orientation="vertical" android:gravity="center_vertical" android:padding="16dp" android:background="@drawable/us_widget_background">
+ <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="OUR LITTLE WORLD"
+ android:textSize="10sp" android:letterSpacing="0.14" android:textStyle="bold" android:textColor="@color/us_widget_secondary"/>
  <TextView android:id="@+id/us_widget_days" android:layout_width="match_parent" android:layout_height="wrap_content"
- android:gravity="center" android:text="Us ♥" android:textSize="22sp" android:textStyle="bold" android:textColor="#923C50"/>
+ android:layout_marginTop="8dp" android:text="Us ♥" android:textSize="22sp" android:textStyle="bold" android:maxLines="2"
+ android:textColor="@color/us_widget_ink"/>
  <TextView android:id="@+id/us_widget_mood" android:layout_width="match_parent" android:layout_height="wrap_content"
- android:gravity="center" android:layout_marginTop="8dp" android:text="Open Us to check in" android:textSize="14sp" android:textColor="#573C42"/>
+ android:layout_marginTop="8dp" android:text="Open Us to check in" android:textSize="12sp" android:maxLines="2" android:textColor="@color/us_widget_secondary"/>
 </LinearLayout>

@@ -122,27 +122,29 @@ class _MemoryComposerState extends State<MemoryComposer> {
       body: SafeArea(
         top: false,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(UsTokens.s20),
           children: [
             const PageHeading(
-              'A moment, kept.',
+              'Keep this\nfeeling.',
               'Choose where this part of your story belongs.',
             ),
             ClipRRect(
-              borderRadius: BorderRadius.circular(26),
+              borderRadius: BorderRadius.circular(UsTokens.s24),
               child: Image.file(
                 File(widget.file),
-                height: 210,
+                height: UsTokens.s208,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                cacheWidth: 900,
+                cacheWidth: UsTokens.previewDecode,
                 errorBuilder: (_, e, st) => const SizedBox(
-                  height: 120,
-                  child: Center(child: Icon(Icons.photo_outlined, size: 40)),
+                  height: UsTokens.s120,
+                  child: Center(
+                    child: Icon(Icons.photo_outlined, size: UsTokens.s40),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: UsTokens.s20),
             TextField(
               key: const Key('memory-caption'),
               controller: _caption,
@@ -155,7 +157,7 @@ class _MemoryComposerState extends State<MemoryComposer> {
                 hintText: 'What made this moment yours?',
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: UsTokens.s8),
             Card(
               child: ListTile(
                 leading: const Icon(Icons.calendar_today_rounded),
@@ -175,68 +177,70 @@ class _MemoryComposerState extends State<MemoryComposer> {
                       },
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: UsTokens.s20),
             Text(
               'Save to collection',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: UsTokens.s4),
             const Text(
               'Pick an existing collection, make a new one, or keep it without a collection.',
             ),
-            const SizedBox(height: 12),
-            Card(
-              child: Column(
-                children: [
-                  RadioListTile<String>(
-                    title: const Text('No collection'),
-                    value: 'none',
-                    groupValue: _collection ?? 'none',
-                    onChanged: _busy
-                        ? null
-                        : (_) => setState(() => _collection = null),
-                  ),
-                  for (final c in _collections)
+            const SizedBox(height: UsTokens.s12),
+            RadioGroup<String>(
+              groupValue: _collection ?? 'none',
+              onChanged: (value) {
+                if (!_busy)
+                  setState(() => _collection = value == 'none' ? null : value);
+              },
+              child: GlassCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: [
                     RadioListTile<String>(
-                      title: Text(c['title'] as String),
-                      value: c['id'] as String,
-                      groupValue: _collection ?? 'none',
-                      onChanged: _busy
-                          ? null
-                          : (v) => setState(() => _collection = v),
+                      title: const Text('No collection'),
+                      value: 'none',
+                      enabled: !_busy,
                     ),
-                  ListTile(
-                    key: const Key('new-memory-collection'),
-                    leading: const Icon(Icons.create_new_folder_outlined),
-                    title: const Text('Create new collection'),
-                    trailing: const Icon(Icons.add),
-                    onTap: _busy ? null : _create,
-                  ),
-                ],
+                    for (final c in _collections)
+                      RadioListTile<String>(
+                        title: Text(c['title'] as String),
+                        value: c['id'] as String,
+                        enabled: !_busy,
+                      ),
+                    ListTile(
+                      key: const Key('new-memory-collection'),
+                      leading: const Icon(Icons.create_new_folder_outlined),
+                      title: const Text('Create new collection'),
+                      trailing: const Icon(Icons.add),
+                      onTap: _busy ? null : _create,
+                    ),
+                  ],
+                ),
               ),
             ),
             if (_error != null)
               Padding(
-                padding: const EdgeInsets.only(top: 14),
+                padding: const EdgeInsets.only(top: UsTokens.s12),
                 child: Text(
                   _error!,
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ),
-            const SizedBox(height: 24),
+            const SizedBox(height: UsTokens.s24),
             ExpressiveButton.icon(
               key: const Key('save-memory'),
               onPressed: _busy ? null : _save,
               icon: _busy
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: UsTokens.s16,
+                      height: UsTokens.s16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.check_rounded),
               label: Text(_busy ? 'Saving…' : 'Save memory'),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: UsTokens.s16),
           ],
         ),
       ),

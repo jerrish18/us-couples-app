@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -330,13 +329,15 @@ void main() {
           expect(tester.takeException(), isNull, reason: entry.key);
           final boundary =
               key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-          final image = await boundary.toImage();
-          final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
           await tester.runAsync(() async {
+            final image = await boundary.toImage();
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.png,
+            );
             await File('ui-review/${entry.key}-${dark ? 'dark' : 'light'}.png')
                 .writeAsBytes(bytes!.buffer.asUint8List());
+            image.dispose();
           });
-          image.dispose();
           await tester.pumpWidget(const SizedBox());
           await tester.pump();
           space.dispose();

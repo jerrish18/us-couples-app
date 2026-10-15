@@ -113,22 +113,23 @@ class EmptyCard extends StatelessWidget {
   final String title, message;
   final IconData icon;
   @override
-  Widget build(BuildContext context) => Card(
-    child: Padding(
-      padding: const EdgeInsets.all(28),
-      child: Column(
-        children: [
-          Icon(icon, size: 42, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(message, textAlign: TextAlign.center),
-        ],
-      ),
+  Widget build(BuildContext context) => GlassCard(
+    child: Column(
+      children: [
+        FlowerBadge(
+          icon: icon,
+          accent: FeatureStyle.of(context),
+          size: UsTokens.s80,
+        ),
+        const SizedBox(height: UsTokens.s24),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall,
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: UsTokens.s12),
+        Text(message, textAlign: TextAlign.center),
+      ],
     ),
   );
 }
@@ -139,7 +140,7 @@ class PrivatePhoto extends StatefulWidget {
     this.path, {
     super.key,
     this.localFile,
-    this.height = 220,
+    this.height = UsTokens.s220,
   });
   final UsSpace space;
   final String path;
@@ -175,14 +176,14 @@ class _PrivatePhotoState extends State<PrivatePhoto> {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(20),
+    borderRadius: BorderRadius.circular(UsTokens.s20),
     child: widget.localFile != null && File(widget.localFile!).existsSync()
         ? Image.file(
             File(widget.localFile!),
             height: widget.height,
             width: double.infinity,
             fit: BoxFit.cover,
-            cacheWidth: 1080,
+            cacheWidth: UsTokens.photoDecode,
           )
         : FutureBuilder<String>(
             future: _url,
@@ -192,9 +193,11 @@ class _PrivatePhotoState extends State<PrivatePhoto> {
                     height: widget.height,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    cacheWidth: 1080,
+                    cacheWidth: UsTokens.photoDecode,
                     errorBuilder: (_, e, st) => _placeholder(),
                   )
+                : snapshot.connectionState == ConnectionState.waiting
+                ? ShimmerBox(height: widget.height)
                 : _placeholder(),
           ),
   );

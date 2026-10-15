@@ -1,3 +1,5 @@
+import 'theme.dart';
+
 import 'dart:async';
 import 'dart:convert';
 
@@ -180,6 +182,7 @@ class UsNotifications {
               : channel == 'us_love'
               ? 'Miss Me'
               : 'Dates and reminders',
+          color: UsColors.lavenderInk,
           importance: Importance.high,
           priority: Priority.high,
           actions: data['kind'] == 'miss_me'
@@ -320,6 +323,7 @@ class UsNotifications {
           android: AndroidNotificationDetails(
             'us_dates',
             'Dates and reminders',
+            color: UsColors.coralInk,
             importance: Importance.high,
           ),
         ),

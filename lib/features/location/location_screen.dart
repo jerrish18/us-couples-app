@@ -40,20 +40,26 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                   (rows.first['longitude'] as num).toDouble(),
                 );
           return ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(UsTokens.s20),
             children: [
-              Text(
-                'Closer, wherever you are',
-                style: Theme.of(context).textTheme.headlineSmall,
+              const PageHeading(
+                'A little\ncloser.',
+                'Live location, shared only when you choose.',
+                trailing: FlowerBadge(
+                  icon: Icons.near_me_rounded,
+                  accent: Accent.blue,
+                ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Each person chooses when to share. Only your partner can see your position. Sharing stops at the selected time. No location history is saved.',
+              const StateBanner(
+                message: 'Each person chooses when to share. Only your partner sees your position. Sharing stops at the selected time. No location history is saved.',
+                icon: Icons.shield_rounded,
+                accent: Accent.blue,
               ),
-              const SizedBox(height: 16),
-              Card(
+              TintedTile(
+                accent: Accent.blue,
+                padding: EdgeInsets.zero,
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(UsTokens.s16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -67,7 +73,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                         Text(
                           'Until ${displayTime(live.until!.toIso8601String())} · stops automatically',
                         ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: UsTokens.s12),
                       if (live.sharing)
                         ExpressiveButton.icon(
                           onPressed: () => live.stop(),
@@ -97,7 +103,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                         ),
                       if (live.starting)
                         const Padding(
-                          padding: EdgeInsets.only(top: 12),
+                          padding: EdgeInsets.only(top: UsTokens.s12),
                           child: LinearProgressIndicator(),
                         ),
                     ],
@@ -106,10 +112,10 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
               ),
               if (live.error != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: UsTokens.s12),
                   child: Text(live.error!),
                 ),
-              const SizedBox(height: 16),
+              const SizedBox(height: UsTokens.s16),
               if (rows.isEmpty)
                 const EmptyCard(
                   'No one is sharing',
@@ -118,7 +124,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                 ),
               for (final r in rows)
                 Card(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: UsTokens.s12),
                   child: ListTile(
                     leading: Icon(
                       r['user_id'] == live.session.userId
@@ -147,6 +153,12 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                     onTap: () => setState(() => _map = true),
                   ),
                 ),
+              if (rows.isEmpty)
+                const EmptyCard(
+                  'Your own little dot on the map',
+                  'Start sharing for a chosen time, or wait for your person to share.',
+                  icon: Icons.explore_rounded,
+                ),
               if (point != null && !_map)
                 OutlinedButton.icon(
                   onPressed: () => setState(() => _map = true),
@@ -157,11 +169,11 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                 const Text(
                   'Map tiles come from OpenStreetMap. GPS accuracy depends on your phone, permissions and surroundings.',
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: UsTokens.s8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(UsTokens.s24),
                   child: SizedBox(
-                    height: 360,
+                    height: UsTokens.s360,
                     child: FlutterMap(
                       mapController: _controller,
                       options: MapOptions(
@@ -201,16 +213,16 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                                   (r['latitude'] as num).toDouble(),
                                   (r['longitude'] as num).toDouble(),
                                 ),
-                                width: 48,
-                                height: 48,
+                                width: UsTokens.s48,
+                                height: UsTokens.s48,
                                 child: Icon(
                                   r['user_id'] == live.session.userId
                                       ? Icons.location_on
                                       : Icons.favorite,
                                   color: r['user_id'] == live.session.userId
-                                      ? Colors.blue
+                                      ? UsColors.blueInk
                                       : Theme.of(context).colorScheme.primary,
-                                  size: 34,
+                                  size: UsTokens.s32,
                                 ),
                               ),
                           ],
@@ -232,7 +244,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: UsTokens.s20),
               const Text(
                 'For best accuracy, choose Precise location and keep Location enabled. Android may pause updates to save battery. A stale marker is never a guarantee of someone’s current position.',
               ),

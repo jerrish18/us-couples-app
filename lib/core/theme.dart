@@ -113,6 +113,14 @@ abstract final class UsTokens {
       s400 = 400.0,
       s440 = 440.0,
       s480 = 480.0;
+  static const font10 = 10.0,
+      font12 = 12.0,
+      font14 = 14.0,
+      font18 = 18.0,
+      font22 = 22.0,
+      font26 = 26.0,
+      font34 = 34.0;
+  static const previewDecode = 960;
   static const card = 32.0,
       pill = 999.0,
       blur = 24.0,
@@ -225,6 +233,12 @@ ThemeData usTheme(Brightness brightness) {
       surfaceTintColor: UsColors.clear,
       elevation: 0,
       scrolledUnderElevation: 0,
+      systemOverlayStyle:
+          (dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
+              .copyWith(
+                statusBarColor: UsColors.clear,
+                systemNavigationBarColor: UsColors.clear,
+              ),
       toolbarHeight: UsTokens.s64,
       centerTitle: false,
       titleSpacing: UsTokens.s20,

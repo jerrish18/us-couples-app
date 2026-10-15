@@ -302,7 +302,8 @@ Future<T?> showGlassDialog<T>({
 }) {
   // Photo viewers remain full-screen routes with the same dismiss behavior.
   if (builder(context) is Dialog)
-    return showDialog<T>(context: context, builder: builder);
+    return Navigator.of(context)
+        .push<T>(MaterialPageRoute(builder: builder, fullscreenDialog: true));
   return showGlassBottomSheet<T>(
     context: context,
     builder: builder,
@@ -983,7 +984,7 @@ class UsDock extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SafeArea(
     top: false,
-    minimum: const EdgeInsetsDirectional.fromSTEB(
+    minimum: const EdgeInsets.fromLTRB(
       UsTokens.s12,
       UsTokens.s8,
       UsTokens.s12,
@@ -1093,6 +1094,30 @@ class StateBanner extends StatelessWidget {
           Icon(icon),
           const SizedBox(width: UsTokens.s12),
           Expanded(child: Text(message)),
+        ],
+      ),
+    ),
+  );
+}
+
+class LoadingPanel extends StatelessWidget {
+  const LoadingPanel({super.key});
+  @override
+  Widget build(BuildContext context) => ConstrainedBox(
+    constraints: const BoxConstraints(maxWidth: UsTokens.s400),
+    child: const GlassCard(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          FlowerBadge(
+            icon: Icons.auto_awesome_rounded,
+            accent: Accent.lavender,
+          ),
+          SizedBox(height: UsTokens.s24),
+          ShimmerBox(height: UsTokens.s24),
+          SizedBox(height: UsTokens.s16),
+          ShimmerBox(height: UsTokens.s80),
         ],
       ),
     ),

@@ -144,29 +144,50 @@ class TogetherScreen extends ConsumerWidget {
           return UsRefresh(
             onRefresh: space.refresh,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+              padding: const EdgeInsets.fromLTRB(
+                UsTokens.s20,
+                UsTokens.s12,
+                UsTokens.s20,
+                UsTokens.s112,
+              ),
               children: [
-                Text(
+                PageHeading(
                   kind == 'letters'
-                      ? 'Little words, for the right moment.'
+                      ? 'Love, in\nenvelopes.'
+                      : kind == 'expenses'
+                      ? 'A little more\nin balance.'
+                      : 'Chapters of us.',
+                  kind == 'letters'
+                      ? 'Little words, for exactly the right moment.'
                       : kind == 'expenses'
                       ? 'A little less “who paid?”'
-                      : 'Make room for every chapter.',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                      : 'Make room for every memory.',
+                  trailing: FlowerBadge(
+                    icon: kind == 'letters'
+                        ? Icons.mail_rounded
+                        : kind == 'expenses'
+                        ? Icons.receipt_long_rounded
+                        : Icons.folder_rounded,
+                    accent: kind == 'letters'
+                        ? Accent.pink
+                        : kind == 'expenses'
+                        ? Accent.green
+                        : Accent.coral,
+                  ),
                 ),
-                const SizedBox(height: 18),
                 if (kind == 'expenses')
-                  Card(
-                    color: Theme.of(context).colorScheme.primaryContainer,
+                  TintedTile(
+                    accent: Accent.green,
+                    padding: EdgeInsets.zero,
                     child: Padding(
-                      padding: const EdgeInsets.all(22),
+                      padding: const EdgeInsets.all(UsTokens.s20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             'Split equally · ₹${((paidMe + paidPartner) / 2).toStringAsFixed(2)} each',
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: UsTokens.s8),
                           Text(
                             balance.abs() < .01
                                 ? 'You’re even'
@@ -189,11 +210,18 @@ class TogetherScreen extends ConsumerWidget {
                   ),
                 for (final r in rows)
                   Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Card(
+                    padding: const EdgeInsets.only(top: UsTokens.s12),
+                    child: GlassCard(
+                      padding: EdgeInsets.zero,
                       child: ListTile(
-                        leading: Icon(
-                          kind == 'letters'
+                        leading: FlowerBadge(
+                          size: UsTokens.s48,
+                          accent: kind == 'letters'
+                              ? Accent.pink
+                              : kind == 'expenses'
+                              ? Accent.green
+                              : Accent.coral,
+                          icon: kind == 'letters'
                               ? Icons.mail_outline
                               : kind == 'expenses'
                               ? Icons.receipt_long_outlined

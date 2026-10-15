@@ -18,6 +18,7 @@ jobs:
         with:
           flutter-version: 3.47.7
           cache: false
+      - run: python3 scripts/check_ui_scope.py
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
       - run: dart format lib test

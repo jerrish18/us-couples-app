@@ -281,7 +281,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const FlowerBadge(
+                          FlowerBadge(
+                            child: space.partner?['avatar_path'] == null
+                                ? null
+                                : PrivatePhoto(
+                                    space,
+                                    space.partner!['avatar_path'] as String,
+                                    height: UsTokens.s64,
+                                  ),
                             icon: Icons.public_rounded,
                             accent: Accent.green,
                           ),

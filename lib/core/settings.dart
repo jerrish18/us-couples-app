@@ -121,25 +121,27 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
       listenable: settings,
       builder: (context, _) {
         if (!settings.ready)
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const Scaffold(body: Center(child: LoadingPanel()));
         if (!settings.locked || _unlocked) return widget.child;
         return Scaffold(
           body: SafeArea(
             child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(28),
+              child: GlassCard(
+                padding: const EdgeInsets.all(UsTokens.s24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.lock_outline, size: 64),
-                    const SizedBox(height: 24),
+                    const FlowerBadge(
+                      icon: Icons.lock_rounded,
+                      accent: Accent.lavender,
+                      size: UsTokens.s96,
+                    ),
+                    const SizedBox(height: UsTokens.s24),
                     Text(
                       'Your space is private',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: UsTokens.s24),
                     ExpressiveButton(
                       onPressed: _busy ? null : () => _unlock(false),
                       child: const Text('Unlock with device security'),

@@ -14,9 +14,9 @@ import 'features/location/live_location.dart';
 import 'features/location/location_screen.dart';
 import 'features/together/together_screen.dart';
 import 'core/session.dart';
-import 'core/theme.dart';
 import 'core/design.dart';
 import 'core/feature_header.dart';
+import 'core/ui.dart';
 import 'core/settings.dart';
 import 'core/space.dart';
 import 'core/notifications.dart';
@@ -32,6 +32,7 @@ import 'features/pairing/pair_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   await VisualCapabilities.initialize();
   var stage = 'Firebase';
   try {
@@ -59,18 +60,20 @@ Future<void> main() async {
       MaterialApp(
         theme: usTheme(Brightness.light),
         home: Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.favorite_outline, size: 56),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Us could not start. Close and reopen the app to try again.',
-                  ),
-                ],
+          body: AmbientMesh(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(UsTokens.s32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.favorite_outline, size: UsTokens.s56),
+                    const SizedBox(height: UsTokens.s20),
+                    const Text(
+                      'Us could not start. Close and reopen the app to try again.',
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -123,7 +126,7 @@ class _UsAppState extends ConsumerState<UsApp> {
               child: ListenableBuilder(
                 listenable: session,
                 builder: (context, _) => session.error == null
-                    ? const CircularProgressIndicator()
+                    ? const LoadingPanel()
                     : Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -261,7 +264,14 @@ class UsShell extends ConsumerWidget {
           leading: IconButton(
             tooltip: 'Profile and settings',
             onPressed: () => context.go('/more'),
-            icon: const FlowerBadge(
+            icon: FlowerBadge(
+              child: space.me?['avatar_path'] == null
+                  ? null
+                  : PrivatePhoto(
+                      space,
+                      space.me!['avatar_path'] as String,
+                      height: UsTokens.s40,
+                    ),
               icon: Icons.person_rounded,
               accent: Accent.lavender,
               size: UsTokens.s40,
@@ -272,10 +282,10 @@ class UsShell extends ConsumerWidget {
             children: [
               Icon(
                 Icons.favorite_rounded,
-                size: 17,
+                size: UsTokens.s16,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: UsTokens.s8),
               Flexible(
                 child: Text(
                   space.session.couple?['name'] as String? ?? 'Us',
@@ -297,10 +307,10 @@ class UsShell extends ConsumerWidget {
             ),
             if (space.syncing)
               const Padding(
-                padding: EdgeInsets.all(18),
+                padding: EdgeInsets.all(UsTokens.s16),
                 child: SizedBox(
-                  width: 18,
-                  height: 18,
+                  width: UsTokens.s16,
+                  height: UsTokens.s16,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
               ),

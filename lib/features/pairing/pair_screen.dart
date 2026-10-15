@@ -67,19 +67,18 @@ class _PairScreenState extends ConsumerState<PairScreen> {
       ],
     ),
     body: ListView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(UsTokens.s24),
       children: [
-        const Icon(Icons.favorite_outline_rounded, size: 60),
-        const SizedBox(height: 20),
-        Text(
-          'It starts with two.',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: 10),
-        const Text(
+        const PageHeading(
+          'Two people.\nOne little world.',
           'Create your space and invite your person. Once they join, your space is locked to both of you.',
+          trailing: FlowerBadge(
+            icon: Icons.favorite_rounded,
+            accent: Accent.pink,
+          ),
         ),
-        const SizedBox(height: 28),
+        const AccentChip(label: 'START YOUR STORY', accent: Accent.yellow),
+        const SizedBox(height: UsTokens.s20),
         TextField(
           controller: _name,
           maxLength: 60,
@@ -107,11 +106,14 @@ class _PairScreenState extends ConsumerState<PairScreen> {
           child: const Text('Create our space'),
         ),
         const Padding(
-          padding: EdgeInsets.symmetric(vertical: 26),
+          padding: EdgeInsets.symmetric(vertical: UsTokens.s24),
           child: Divider(),
         ),
-        Text('Have an invite?', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 14),
+        const PageHeading(
+          'Already invited?',
+          'Six little characters bring you together.',
+        ),
+        const SizedBox(height: UsTokens.s12),
         TextField(
           controller: _code,
           maxLength: 6,
@@ -127,11 +129,14 @@ class _PairScreenState extends ConsumerState<PairScreen> {
         ),
         if (_busy)
           const Padding(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(UsTokens.s16),
             child: Center(child: CircularProgressIndicator()),
           ),
         if (_error != null)
-          Padding(padding: const EdgeInsets.all(16), child: Text(_error!)),
+          Padding(
+            padding: const EdgeInsets.all(UsTokens.s16),
+            child: Text(_error!),
+          ),
       ],
     ),
   );

@@ -392,7 +392,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             () => space.react(m['id'] as String, emoji: emoji),
                           );
                         },
-                        icon: Text(emoji, style: const TextStyle(fontSize: 25)),
+                        icon: Text(
+                          emoji,
+                          style: const TextStyle(fontSize: UsTokens.s24),
+                        ),
                       ),
                   ],
                 ),
@@ -564,9 +567,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         )
         .firstOrNull;
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: UsTokens.s12),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(UsTokens.s16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -661,10 +664,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         return Column(
           children: [
             ListTile(
-              contentPadding: const EdgeInsets.fromLTRB(22, 6, 14, 12),
+              contentPadding: const EdgeInsets.fromLTRB(
+                UsTokens.s20,
+                UsTokens.s4,
+                UsTokens.s12,
+                UsTokens.s12,
+              ),
               leading: Badge(
                 backgroundColor: space.partnerOnline
-                    ? Colors.green
+                    ? UsColors.greenInk
                     : colors.outline,
                 smallSize: 10,
                 child: CircleAvatar(
@@ -711,7 +719,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               listenable: space,
                               builder: (c, _) => ListView(
                                 shrinkWrap: true,
-                                padding: const EdgeInsets.all(20),
+                                padding: const EdgeInsets.all(UsTokens.s20),
                                 children: [
                                   Text(
                                     'Our polls',
@@ -754,7 +762,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             ),
             if (_searching)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(
+                  UsTokens.s16,
+                  UsTokens.s0,
+                  UsTokens.s16,
+                  UsTokens.s8,
+                ),
                 child: TextField(
                   controller: _search,
                   autofocus: true,
@@ -778,23 +791,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             if (_searchBusy) const LinearProgressIndicator(minHeight: 2),
             if (_starred)
               const Padding(
-                padding: EdgeInsets.all(8),
+                padding: EdgeInsets.all(UsTokens.s8),
                 child: Text('★ Your starred messages'),
               ),
             if (pins.isNotEmpty)
               SizedBox(
-                height: 44,
+                height: UsTokens.s44,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: UsTokens.s16),
                   children: pins
                       .map(
                         (m) => Padding(
-                          padding: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.only(right: UsTokens.s8),
                           child: ActionChip(
-                            avatar: const Icon(Icons.push_pin, size: 16),
+                            avatar: const Icon(
+                              Icons.push_pin,
+                              size: UsTokens.s16,
+                            ),
                             label: SizedBox(
-                              width: 150,
+                              width: UsTokens.s152,
                               child: Text(
                                 m['body'] as String? ?? 'Pinned attachment',
                                 maxLines: 1,
@@ -825,8 +841,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       controller: _scroll,
                       reverse: true,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: UsTokens.s16,
+                        vertical: UsTokens.s12,
                       ),
                       itemCount: messages.length,
                       itemBuilder: (context, index) {
@@ -863,7 +879,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             if (showDay)
                               Padding(
                                 padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
+                                  vertical: UsTokens.s16,
                                 ),
                                 child: Text(
                                   displayDate(day),
@@ -884,20 +900,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 return false;
                               },
                               background: const Align(
-                                alignment: Alignment.centerLeft,
+                                alignment: AlignmentDirectional.centerStart,
                                 child: Icon(Icons.reply),
                               ),
                               child: Align(
                                 alignment: mine
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
+                                    ? AlignmentDirectional.centerEnd
+                                    : AlignmentDirectional.centerStart,
                                 child: ConstrainedBox(
                                   constraints: BoxConstraints(
                                     maxWidth:
                                         MediaQuery.sizeOf(context).width * .82,
                                   ),
                                   child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.only(
+                                      bottom: UsTokens.s8,
+                                    ),
                                     child: GestureDetector(
                                       onLongPress: () => _actions(space, m),
                                       onDoubleTap:
@@ -918,20 +936,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             if (m['reply_to'] != null)
                                               Container(
                                                 padding: const EdgeInsets.all(
-                                                  9,
+                                                  UsTokens.s8,
                                                 ),
                                                 margin: const EdgeInsets.only(
-                                                  bottom: 8,
+                                                  bottom: UsTokens.s8,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: colors.surface
                                                       .withValues(alpha: .45),
                                                   borderRadius:
-                                                      BorderRadius.circular(10),
+                                                      BorderRadius.circular(
+                                                        UsTokens.s8,
+                                                      ),
                                                   border: Border(
                                                     left: BorderSide(
                                                       color: colors.primary,
-                                                      width: 3,
+                                                      width: UsTokens.s4,
                                                     ),
                                                   ),
                                                 ),
@@ -958,30 +978,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                       body: Center(
                                                         child: InteractiveViewer(
                                                           maxScale: 5,
-                                                          child: PrivatePhoto(
-                                                            space,
-                                                            m['media_path']
-                                                                as String,
-                                                            localFile:
-                                                                m['_local_file']
-                                                                    as String?,
-                                                            height:
-                                                                MediaQuery.sizeOf(
-                                                                  c,
-                                                                ).height *
-                                                                .7,
+                                                          child: Hero(
+                                                            tag:
+                                                                'message-${m['id']}',
+                                                            child: PrivatePhoto(
+                                                              space,
+                                                              m['media_path']
+                                                                  as String,
+                                                              localFile:
+                                                                  m['_local_file']
+                                                                      as String?,
+                                                              height:
+                                                                  MediaQuery.sizeOf(
+                                                                    c,
+                                                                  ).height *
+                                                                  .7,
+                                                            ),
                                                           ),
                                                         ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
-                                                child: PrivatePhoto(
-                                                  space,
-                                                  m['media_path'] as String,
-                                                  localFile:
-                                                      m['_local_file']
-                                                          as String?,
+                                                child: Hero(
+                                                  tag: 'message-${m['id']}',
+                                                  child: PrivatePhoto(
+                                                    space,
+                                                    m['media_path'] as String,
+                                                    localFile:
+                                                        m['_local_file']
+                                                            as String?,
+                                                  ),
                                                 ),
                                               ),
                                             if (!deleted &&
@@ -1031,8 +1058,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                               Text(
                                                 text,
                                                 style: TextStyle(
-                                                  fontSize: 16,
-                                                  height: 1.4,
+                                                  fontSize: UsTokens.s16,
+                                                  height: UsTokens.s0,
                                                   fontStyle: deleted
                                                       ? FontStyle.italic
                                                       : null,
@@ -1050,35 +1077,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 ),
                                                 icon: const Icon(
                                                   Icons.open_in_new,
-                                                  size: 16,
+                                                  size: UsTokens.s16,
                                                 ),
                                                 label: const Text('Open link'),
                                               ),
                                             if (reacts.isNotEmpty)
                                               Padding(
                                                 padding: const EdgeInsets.only(
-                                                  top: 6,
+                                                  top: UsTokens.s4,
                                                 ),
                                                 child: Text(
                                                   reacts,
                                                   style: const TextStyle(
-                                                    fontSize: 18,
+                                                    fontSize: UsTokens.font18,
                                                   ),
                                                 ),
                                               ),
-                                            const SizedBox(height: 5),
+                                            const SizedBox(height: UsTokens.s4),
                                             Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 if (stars.contains(m['id']))
                                                   const Icon(
                                                     Icons.star,
-                                                    size: 12,
+                                                    size: UsTokens.s12,
                                                   ),
                                                 if (m['pinned'] == true)
                                                   const Icon(
                                                     Icons.push_pin,
-                                                    size: 12,
+                                                    size: UsTokens.s12,
                                                   ),
                                                 Text(
                                                   '${displayTime(m['created_at'] as String)}${m['edited_at'] != null ? ' · edited' : ''}${mine ? ' · ${m['_pending'] == true
@@ -1095,13 +1122,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                   Padding(
                                                     padding:
                                                         const EdgeInsets.only(
-                                                          left: 4,
+                                                          left: UsTokens.s4,
                                                         ),
                                                     child: Icon(
                                                       read
                                                           ? Icons.done_all
                                                           : Icons.done,
-                                                      size: 14,
+                                                      size: UsTokens.s12,
                                                       color: read
                                                           ? colors.primary
                                                           : colors
@@ -1176,8 +1203,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 children: [
                   const Icon(
                     Icons.fiber_manual_record,
-                    color: Colors.red,
-                    size: 14,
+                    color: UsColors.danger,
+                    size: UsTokens.s12,
                   ),
                   const Text(' Recording · up to 3 minutes'),
                   TextButton(
@@ -1193,7 +1220,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                padding: const EdgeInsets.fromLTRB(
+                  UsTokens.s8,
+                  UsTokens.s8,
+                  UsTokens.s8,
+                  UsTokens.s8,
+                ),
                 child: GlassCard(
                   blur: true,
                   radius: UsTokens.s36,
@@ -1251,8 +1283,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           decoration: const InputDecoration(
                             hintText: 'A little hello…',
                             contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 13,
+                              horizontal: UsTokens.s16,
+                              vertical: UsTokens.s12,
                             ),
                           ),
                         ),

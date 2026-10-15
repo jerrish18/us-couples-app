@@ -154,7 +154,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
         return UsRefresh(
           onRefresh: space.refresh,
           child: ListView.builder(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(UsTokens.s20),
             itemCount: memories.length + 1,
             itemBuilder: (context, index) {
               if (index == 0)
@@ -162,15 +162,18 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     PageHeading(
-                      'Memories',
+                      'Our little\nforevers.',
                       '${memories.length} moments · Only the two of you',
                       trailing: Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(UsTokens.s12),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(UsTokens.s16),
                         ),
-                        child: const Icon(Icons.auto_awesome_rounded, size: 24),
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          size: UsTokens.s24,
+                        ),
                       ),
                     ),
                     ExpressiveButton.icon(
@@ -178,7 +181,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                       icon: const Icon(Icons.add_photo_alternate_outlined),
                       label: const Text('Keep a memory'),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: UsTokens.s12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -196,13 +199,13 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                                 setState(() => _collection = c['id'] as String),
                           ),
                         ActionChip(
-                          avatar: const Icon(Icons.add, size: 18),
+                          avatar: const Icon(Icons.add, size: UsTokens.s16),
                           label: const Text('Collection'),
                           onPressed: () => context.push('/collections'),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: UsTokens.s20),
                     if (memories.isEmpty)
                       const EmptyCard(
                         'Our little moments',
@@ -217,7 +220,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                   .length;
               return Card(
                 key: ValueKey(m['id']),
-                margin: const EdgeInsets.only(bottom: 20),
+                margin: const EdgeInsets.only(bottom: UsTokens.s20),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,26 +240,32 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                             body: Center(
                               child: InteractiveViewer(
                                 maxScale: 5,
-                                child: PrivatePhoto(
-                                  space,
-                                  m['media_path'] as String,
-                                  localFile: m['_local_file'] as String?,
-                                  height: MediaQuery.sizeOf(c).height * .75,
+                                child: Hero(
+                                  tag: 'memory-${m['id']}',
+                                  child: PrivatePhoto(
+                                    space,
+                                    m['media_path'] as String,
+                                    localFile: m['_local_file'] as String?,
+                                    height: MediaQuery.sizeOf(c).height * .75,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      child: PrivatePhoto(
-                        space,
-                        m['media_path'] as String,
-                        localFile: m['_local_file'] as String?,
-                        height: 280,
+                      child: Hero(
+                        tag: 'memory-${m['id']}',
+                        child: PrivatePhoto(
+                          space,
+                          m['media_path'] as String,
+                          localFile: m['_local_file'] as String?,
+                          height: UsTokens.s280,
+                        ),
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(UsTokens.s16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -264,7 +273,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                             m['caption'] as String,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: UsTokens.s8),
                           Row(
                             children: [
                               Expanded(
@@ -319,8 +328,8 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                                   ],
                                   icon: _deleting.contains(m['id'])
                                       ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
+                                          width: UsTokens.s20,
+                                          height: UsTokens.s20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
                                           ),
@@ -336,7 +345,15 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                                     memory: true,
                                   ),
                                 ),
-                                icon: const Icon(Icons.favorite_outline),
+                                icon: AnimatedSwitcher(
+                                  duration: usMotion(context),
+                                  child: Icon(
+                                    hearted
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    key: ValueKey(hearted),
+                                  ),
+                                ),
                               ),
                               Text('$hearts'),
                             ],

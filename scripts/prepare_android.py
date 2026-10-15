@@ -14,7 +14,7 @@ manifest = Path('android/app/src/main/AndroidManifest.xml')
 text = manifest.read_text().replace('android:label="us"', 'android:label="Us"')
 text = text.replace('android:icon="@mipmap/ic_launcher"','android:icon="@drawable/us_icon"')
 text = text.replace('</activity>','<meta-data android:name="flutter_deeplinking_enabled" android:value="false"/></activity>',1)
-text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application android:allowBackup="false" android:fullBackupContent="false"')
+text = text.replace('<application', '<uses-permission android:name="android.permission.INTERNET"/>\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <application android:enableOnBackInvokedCallback="true" android:allowBackup="false" android:fullBackupContent="false"')
 text = text.replace('<application', '<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <application')
 text = text.replace('android:launchMode="singleTop"','android:launchMode="singleTask"')
 text = text.replace('</activity>', '<intent-filter><action android:name="android.intent.action.VIEW"/><category android:name="android.intent.category.DEFAULT"/><category android:name="android.intent.category.BROWSABLE"/><data android:scheme="com.jerrish18.us" android:host="login-callback"/></intent-filter></activity>',1)
@@ -32,7 +32,7 @@ text = gradle.read_text().replace('compileOptions {', 'compileOptions {\n       
 text += '\ndependencies { coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4") }\n'
 gradle.write_text(text)
 activity = Path('android/app/src/main/kotlin/com/jerrish18/us/MainActivity.kt')
-activity.write_text(activity.read_text().replace('FlutterActivity', 'FlutterFragmentActivity'))
+shutil.copyfile('android_templates/MainActivity.kt',activity)
 print('Android configured for package com.jerrish18.us, API 24+, with automatic backups disabled.')
 
 for source, destination in [
@@ -62,3 +62,11 @@ gradle.write_text(gradle.read_text().replace('buildTypes {',
 # Dart references this drawable by string, so Android cannot discover its use.
 raw=Path('android/app/src/main/res/raw');raw.mkdir(exist_ok=True)
 (raw/'keep.xml').write_text('<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@drawable/us_notification"/>')
+
+# Presentation-only colors for the native widget and launch surface.
+for source, destination in [('us_colors.xml','values/us_colors.xml'),('us_colors_night.xml','values-night/us_colors.xml')]:
+    target=Path('android/app/src/main/res')/destination
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(Path('android_templates')/source,target)
+for launch in Path('android/app/src/main/res').glob('drawable*/launch_background.xml'):
+    launch.write_text('<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item><shape><gradient android:angle="315" android:startColor="@color/us_widget_start" android:endColor="@color/us_widget_end"/></shape></item></layer-list>')

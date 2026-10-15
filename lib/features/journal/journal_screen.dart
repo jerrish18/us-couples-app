@@ -43,12 +43,21 @@ class JournalScreen extends ConsumerWidget {
                 ),
               );
           return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+            padding: const EdgeInsets.fromLTRB(
+              UsTokens.s20,
+              UsTokens.s20,
+              UsTokens.s20,
+              UsTokens.s96,
+            ),
             children: [
-              const Text(
-                'New entries are only visible to you. Share an entry when you want your person to read it.',
+              const PageHeading(
+                'Our unwritten\nchapters.',
+                'New entries are only visible to you. Share a page when you want your person to read it.',
+                trailing: FlowerBadge(
+                  icon: Icons.auto_stories_rounded,
+                  accent: Accent.lavender,
+                ),
               ),
-              const SizedBox(height: 20),
               if (entries.isEmpty)
                 const EmptyCard(
                   'Some words, just for you',
@@ -57,19 +66,25 @@ class JournalScreen extends ConsumerWidget {
                 ),
               ...entries.map((entry) {
                 final mine = entry['author_id'] == space.session.userId;
-                return Card(
+                return GlassCard(
+                  padding: EdgeInsets.zero,
                   child: Padding(
-                    padding: const EdgeInsets.all(18),
+                    padding: const EdgeInsets.all(UsTokens.s16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           '${displayDate(entry['entry_date'] as String)} · ${entry['shared'] == true ? 'Shared ❤️' : 'Only me 🔒'}',
                         ),
-                        const SizedBox(height: 14),
-                        SelectableText(entry['body'] as String),
+                        const SizedBox(height: UsTokens.s12),
+                        SelectableText(
+                          entry['body'] as String,
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
                         if (mine)
-                          Row(
+                          Wrap(
+                            spacing: UsTokens.s8,
+                            runSpacing: UsTokens.s8,
                             children: [
                               TextButton(
                                 onPressed: () => safely(

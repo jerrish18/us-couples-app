@@ -3,7 +3,6 @@ import 'dart:async';
 import '../../core/auth_links.dart';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -151,117 +150,144 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
+          padding: UsTokens.page,
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Form(
-              key: _form,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  StoryPanel(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      child: Icon(
-                        Icons.favorite_rounded,
-                        size: 44,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Us',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.displayMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'A little space, just for two.',
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 36),
-                  Text(
-                    _signup ? 'Make yourself at home' : 'Welcome back',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    autofillHints: const [AutofillHints.email],
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    validator: (v) =>
-                        v != null &&
-                            RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
-                                .hasMatch(v.trim())
-                        ? null
-                        : 'Enter a valid email',
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _password,
-                    obscureText: _obscure,
-                    autofillHints: [
-                      _signup
-                          ? AutofillHints.newPassword
-                          : AutofillHints.password,
-                    ],
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      suffixIcon: IconButton(
-                        tooltip: _obscure ? 'Show password' : 'Hide password',
-                        onPressed: () => setState(() => _obscure = !_obscure),
-                        icon: Icon(
-                          _obscure ? Icons.visibility : Icons.visibility_off,
+            constraints: const BoxConstraints(maxWidth: UsTokens.s440),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const PageEntrance(
+                  child: TintedTile(
+                    accent: Accent.pink,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Us',
+                                style: TextStyle(
+                                  fontSize: UsTokens.s56,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -2,
+                                ),
+                              ),
+                              Text('A little space, just for two.'),
+                            ],
+                          ),
                         ),
-                      ),
-                    ),
-                    validator: (v) => v != null && v.length >= (_signup ? 8 : 1)
-                        ? null
-                        : 'Use at least 8 characters',
-                  ),
-                  if (_message != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: Text(_message!),
-                    ),
-                  const SizedBox(height: 24),
-                  ExpressiveButton(
-                    onPressed: _busy ? null : _submit,
-                    child: _busy
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(_signup ? 'Create account' : 'Sign in'),
-                  ),
-                  TextButton(
-                    onPressed: _busy
-                        ? null
-                        : () => setState(() {
-                            _signup = !_signup;
-                            _message = null;
-                          }),
-                    child: Text(
-                      _signup
-                          ? 'Already have an account? Sign in'
-                          : 'New here? Create an account',
+                        FlowerBadge(accent: Accent.coral, size: UsTokens.s80),
+                      ],
                     ),
                   ),
-                  TextButton(
-                    onPressed: _busy ? null : _resend,
-                    child: const Text('Resend confirmation email'),
+                ),
+                const SizedBox(height: UsTokens.s24),
+                GlassCard(
+                  child: Form(
+                    key: _form,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          _signup ? 'Make yourself at home' : 'Welcome back',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        const SizedBox(height: UsTokens.s20),
+                        OutlinedButton.icon(
+                          onPressed: _busy ? null : _google,
+                          icon: const Icon(Icons.account_circle_rounded),
+                          label: const Text('Continue with Google'),
+                        ),
+                        const SizedBox(height: UsTokens.s16),
+                        const Center(child: Text('or use your email')),
+                        const SizedBox(height: UsTokens.s16),
+                        TextFormField(
+                          controller: _email,
+                          keyboardType: TextInputType.emailAddress,
+                          autofillHints: const [AutofillHints.email],
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.alternate_email_rounded),
+                          ),
+                          validator: (v) =>
+                              v != null &&
+                                  RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+                                      .hasMatch(v.trim())
+                              ? null
+                              : 'Enter a valid email',
+                        ),
+                        const SizedBox(height: UsTokens.s12),
+                        TextFormField(
+                          controller: _password,
+                          obscureText: _obscure,
+                          autofillHints: [
+                            _signup
+                                ? AutofillHints.newPassword
+                                : AutofillHints.password,
+                          ],
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded),
+                            suffixIcon: IconButton(
+                              tooltip: _obscure
+                                  ? 'Show password'
+                                  : 'Hide password',
+                              onPressed: () =>
+                                  setState(() => _obscure = !_obscure),
+                              icon: Icon(
+                                _obscure
+                                    ? Icons.visibility_rounded
+                                    : Icons.visibility_off_rounded,
+                              ),
+                            ),
+                          ),
+                          validator: (v) =>
+                              v != null && v.length >= (_signup ? 8 : 1)
+                              ? null
+                              : 'Use at least 8 characters',
+                        ),
+                        if (_message != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: UsTokens.s16),
+                            child: Text(_message!),
+                          ),
+                        const SizedBox(height: UsTokens.s24),
+                        ExpressiveButton(
+                          onPressed: _busy ? null : _submit,
+                          child: _busy
+                              ? const SizedBox(
+                                  width: UsTokens.s24,
+                                  height: UsTokens.s24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(_signup ? 'Create account' : 'Sign in'),
+                        ),
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => setState(() {
+                                  _signup = !_signup;
+                                  _message = null;
+                                }),
+                          child: Text(
+                            _signup
+                                ? 'Already have an account? Sign in'
+                                : 'New here? Create an account',
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _busy ? null : _resend,
+                          child: const Text('Resend confirmation email'),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _busy ? null : _google,
-                    icon: const Icon(Icons.account_circle_outlined),
-                    label: const Text('Continue with Google'),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: UsTokens.s24),
+              ],
             ),
           ),
         ),

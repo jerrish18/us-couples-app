@@ -43,8 +43,52 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
               .where((r) => r['list_kind'] == _kind)
               .toList();
           return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 90),
+            padding: const EdgeInsets.fromLTRB(
+              UsTokens.s20,
+              UsTokens.s20,
+              UsTokens.s20,
+              UsTokens.s88,
+            ),
             children: [
+              const PageHeading(
+                'Little plans.\nBig memories.',
+                'From everyday things to someday dreams.',
+              ),
+              TintedTile(
+                accent: Accent.green,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimatedCounter(
+                            value: items
+                                .where((item) => item['completed'] == true)
+                                .length,
+                            style: Theme.of(context).textTheme.displaySmall,
+                          ),
+                          Text('of ${items.length} little plans complete'),
+                        ],
+                      ),
+                    ),
+                    ProgressRing(
+                      value: items.isEmpty
+                          ? 0
+                          : items
+                                    .where((item) => item['completed'] == true)
+                                    .length /
+                                items.length,
+                      size: UsTokens.s88,
+                      child: const FlowerBadge(
+                        icon: Icons.check_rounded,
+                        accent: Accent.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: UsTokens.s24),
               SegmentedButton<String>(
                 segments: const [
                   ButtonSegment(value: 'bucket', label: Text('Bucket')),
@@ -54,7 +98,7 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
                 selected: {_kind},
                 onSelectionChanged: (v) => setState(() => _kind = v.first),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: UsTokens.s24),
               if (items.isEmpty)
                 const EmptyCard(
                   'Make a little plan',
@@ -62,7 +106,8 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
                   icon: Icons.checklist,
                 ),
               ...items.map(
-                (item) => Card(
+                (item) => GlassCard(
+                  padding: EdgeInsets.zero,
                   child: CheckboxListTile(
                     value: item['completed'] == true,
                     onChanged: (value) => safely(

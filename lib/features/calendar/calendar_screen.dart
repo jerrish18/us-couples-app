@@ -83,10 +83,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               }).toList();
         final anniversaries = space.rows['anniversaries'] ?? [];
         return ListView(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(UsTokens.s16),
           children: [
             const PageHeading(
-              'Our calendar',
+              'A date with\nour favourite.',
               'Make room for your favourite person.',
             ),
             Row(
@@ -98,7 +98,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     label: const Text('Plan a date'),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: UsTokens.s12),
                 IconButton(
                   tooltip: 'Add special day',
                   onPressed: () => _anniversary(space),
@@ -106,7 +106,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
               ],
             ),
-            Card(
+            GlassCard(
+              padding: const EdgeInsets.all(UsTokens.s8),
               child: CalendarDatePicker(
                 initialDate: _selected ?? DateTime.now(),
                 firstDate: DateTime(1900),
@@ -160,9 +161,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         response?['proposed_at'] as String? ?? '',
                       ) ==
                       DateTime.tryParse(date['starts_at'] as String);
-              return Card(
+              return GlassCard(
+                padding: EdgeInsets.zero,
                 child: Padding(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(UsTokens.s16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -170,21 +172,21 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         date['title'] as String,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: UsTokens.s8),
                       Text(
                         '${displayDate(date['starts_at'] as String)} · ${displayTime(date['starts_at'] as String)}',
                       ),
                       if ((date['place'] as String).isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: UsTokens.s8),
                           child: Text('📍 ${date['place']}'),
                         ),
                       if ((date['notes'] as String).isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.only(top: UsTokens.s8),
                           child: Text(date['notes'] as String),
                         ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: UsTokens.s12),
                       Text(
                         acceptedSuggestion
                             ? 'Accepted ❤️'
@@ -270,7 +272,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 ),
               );
             }),
-            const SizedBox(height: 24),
+            const SizedBox(height: UsTokens.s24),
             Row(
               children: [
                 Expanded(
@@ -351,7 +353,12 @@ class _DateEditorState extends State<DateEditor> {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Padding(
-      padding: EdgeInsets.fromLTRB(24, 24, 24, 24),
+      padding: EdgeInsets.fromLTRB(
+        UsTokens.s24,
+        UsTokens.s24,
+        UsTokens.s24,
+        UsTokens.s24,
+      ),
       child: SingleChildScrollView(
         child: Form(
           key: _form,
@@ -363,7 +370,7 @@ class _DateEditorState extends State<DateEditor> {
                 'A date, just for us',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: UsTokens.s20),
               TextFormField(
                 controller: _title,
                 maxLength: 120,
@@ -390,7 +397,7 @@ class _DateEditorState extends State<DateEditor> {
                   labelText: 'Place or call link',
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: UsTokens.s12),
               TextField(
                 controller: _notes,
                 maxLength: 4000,
@@ -398,7 +405,7 @@ class _DateEditorState extends State<DateEditor> {
                 maxLines: 4,
                 decoration: const InputDecoration(labelText: 'Notes'),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: UsTokens.s16),
               ExpressiveButton(
                 onPressed: () {
                   if (_form.currentState!.validate())
