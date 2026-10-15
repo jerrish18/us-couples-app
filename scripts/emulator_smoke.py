@@ -1,4 +1,4 @@
-import subprocess,time,urllib.request
+import subprocess,time,urllib.request,re
 from pathlib import Path
 
 def adb(*args):
@@ -16,6 +16,7 @@ assert old_uid==adb('shell','pm','list','packages','-U','com.jerrish18.us').stri
 print('In-place update succeeded with unchanged app identity; starting app',flush=True)
 adb('logcat','-c')
 print(adb('shell','am','start','-n','com.jerrish18.us/.MainActivity'),flush=True)
+scrolled_login=False
 deadline=time.monotonic()+60
 while time.monotonic()<deadline:
     time.sleep(2)
@@ -25,6 +26,14 @@ while time.monotonic()<deadline:
         raise SystemExit('Android UI dump timed out; diagnostics saved')
     xml=adb('shell','cat','/sdcard/us-ui.xml')
     if 'Welcome back' in xml and 'Continue with Google' in xml:break
+    if 'Welcome back' in xml and not scrolled_login:
+        # Verify Google sign-in remains reachable on a small screen by scrolling.
+        with (out/'login-top.png').open('wb') as file:
+            subprocess.run(['adb','exec-out','screencap','-p'],stdout=file,check=True)
+        dimensions=re.findall(r'(\d+)x(\d+)',adb('shell','wm','size'))[-1]
+        width,height=map(int,dimensions)
+        adb('shell','input','swipe',str(width//2),str(height*4//5),str(width//2),str(height//3),'400')
+        scrolled_login=True
 else:
     (out/'last-ui.xml').write_text(xml)
     with (out/'failed-launch.png').open('wb') as file:
