@@ -19,7 +19,7 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
     final space = ref.watch(spaceProvider);
     return Scaffold(
       appBar: GlassAppBar(title: const Text('Our lists')),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: GlassActionButton.extended(
         onPressed: () async {
           final title = await askText(
             context,

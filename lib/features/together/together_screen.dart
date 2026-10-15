@@ -115,7 +115,7 @@ class TogetherScreen extends ConsumerWidget {
               : 'Memory collections',
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: GlassActionButton.extended(
         onPressed: () => _add(context, space),
         icon: const Icon(Icons.add),
         label: Text(

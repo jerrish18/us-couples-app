@@ -13,7 +13,7 @@ class JournalScreen extends ConsumerWidget {
     final space = ref.watch(spaceProvider);
     return Scaffold(
       appBar: GlassAppBar(title: const Text('Our journal')),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: GlassActionButton.extended(
         icon: const Icon(Icons.edit_note),
         label: const Text('Write'),
         onPressed: () async {

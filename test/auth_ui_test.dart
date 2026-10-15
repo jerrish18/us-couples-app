@@ -21,10 +21,15 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(child: MaterialApp(home: AuthScreen())),
     );
+    await tester.ensureVisible(find.text('New here? Create an account'));
     await tester.tap(find.text('New here? Create an account'));
+    await tester.pumpAndSettle();
     await tester.pump();
     await tester.enterText(find.byType(TextFormField).first, 'a@example.com');
     await tester.enterText(find.byType(TextFormField).last, 'short');
+    await tester.ensureVisible(
+      find.widgetWithText(FilledButton, 'Create account'),
+    );
     await tester.tap(find.widgetWithText(FilledButton, 'Create account'));
     await tester.pump();
     expect(find.text('Use at least 8 characters'), findsOneWidget);

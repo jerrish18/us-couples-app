@@ -9,6 +9,8 @@ import 'package:flutter/services.dart';
 import 'theme.dart';
 export 'theme.dart';
 
+final _glassOverlayDepth = ValueNotifier<int>(0);
+
 Duration usMotion(BuildContext context, [int ms = UsTokens.interaction]) =>
     MediaQuery.disableAnimationsOf(context)
     ? Duration.zero
@@ -141,18 +143,26 @@ class GlassCard extends StatelessWidget {
     this.radius = UsTokens.card,
     this.accent,
     this.contrast = true,
+    this.overlay = false,
   });
   final Widget child;
   final EdgeInsetsGeometry padding;
-  final bool blur, contrast;
+  final bool blur, contrast, overlay;
   final double radius;
   final Accent? accent;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => blur
+      ? ValueListenableBuilder<int>(
+          valueListenable: _glassOverlayDepth,
+          builder: (context, _, _) => _surface(context),
+        )
+      : _surface(context);
+  Widget _surface(BuildContext context) {
     final theme = Theme.of(context), dark = theme.brightness == Brightness.dark;
     final color = UsColors.tint(accent ?? FeatureStyle.of(context), dark);
     final live =
         blur &&
+        (overlay || _glassOverlayDepth.value == 0) &&
         VisualCapabilities.sdk >= 31 &&
         (ModalRoute.of(context)?.isCurrent ?? true);
     Widget body = DecoratedBox(
@@ -166,7 +176,7 @@ class GlassCard extends StatelessWidget {
           ],
         ),
       ),
-      child: ColoredBox(
+      child: Material(
         color: Color.alphaBlend(
           color.withValues(alpha: .13),
           theme.colorScheme.surface,
@@ -252,6 +262,7 @@ class GlassSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GlassCard(
     blur: true,
+    overlay: true,
     radius: UsTokens.s36,
     padding: EdgeInsets.zero,
     child: SafeArea(
@@ -282,28 +293,38 @@ Future<T?> showGlassBottomSheet<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool isScrollControlled = false,
-}) => showModalBottomSheet<T>(
-  context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  backgroundColor: UsColors.clear,
-  constraints: BoxConstraints(
-    maxWidth: UsTokens.s480,
-    maxHeight: MediaQuery.sizeOf(context).height * .92,
-  ),
-  builder: (c) => Padding(
-    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
-    child: GlassSheet(child: builder(c)),
-  ),
-);
+}) async {
+  _glassOverlayDepth.value++;
+  try {
+    return await showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: UsColors.clear,
+      constraints: BoxConstraints(
+        maxWidth: UsTokens.s480,
+        maxHeight: MediaQuery.sizeOf(context).height * .92,
+      ),
+      builder: (c) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(c).bottom),
+        child: GlassSheet(child: builder(c)),
+      ),
+    );
+  } finally {
+    _glassOverlayDepth.value--;
+  }
+}
+
 Future<T?> showGlassDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,
 }) {
   // Photo viewers remain full-screen routes with the same dismiss behavior.
   if (builder(context) is Dialog)
-    return Navigator.of(context)
-        .push<T>(MaterialPageRoute(builder: builder, fullscreenDialog: true));
+    return Navigator.of(
+      context,
+      rootNavigator: true,
+    ).push<T>(MaterialPageRoute(builder: builder, fullscreenDialog: true));
   return showGlassBottomSheet<T>(
     context: context,
     builder: builder,
@@ -433,23 +454,31 @@ class PageEntrance extends StatelessWidget {
   final Widget child;
   final int index;
   @override
-  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-    tween: Tween(begin: 0, end: 1),
-    duration: usMotion(
-      context,
-      math.min(UsTokens.entrance + index * UsTokens.stagger, 600),
-    ),
-    curve: Curves.easeOutCubic,
-    builder: (_, v, child) => Transform.translate(
-      offset: Offset(0, UsTokens.s16 * (1 - v)),
-      child: Transform.scale(
-        scale: .97 + .03 * v,
-        alignment: Alignment.topCenter,
-        child: Opacity(opacity: v, child: child),
-      ),
-    ),
-    child: child,
-  );
+  Widget build(BuildContext context) {
+    final delay = math.min(index * UsTokens.stagger, 180),
+        total = math.min(UsTokens.entrance + delay, 600);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: usMotion(context, total),
+      builder: (_, raw, child) {
+        final value = Interval(
+          delay / total,
+          1,
+          curve: Curves.easeOutCubic,
+        ).transform(raw);
+        final spatial = const ExpressiveSpring().transform(value);
+        return Transform.translate(
+          offset: Offset(0, UsTokens.s16 * (1 - spatial)),
+          child: Transform.scale(
+            scale: .97 + .03 * spatial,
+            alignment: Alignment.topCenter,
+            child: Opacity(opacity: value, child: child),
+          ),
+        );
+      },
+      child: child,
+    );
+  }
 }
 
 class PageHeading extends StatelessWidget {
@@ -938,6 +967,7 @@ class CelebrationBurst extends StatelessWidget {
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: 1),
               duration: usMotion(context, 360),
+              curve: Curves.easeOutCubic,
               builder: (_, v, _) => CustomPaint(painter: _ParticlePainter(v)),
             ),
           ),
@@ -1124,6 +1154,28 @@ class LoadingPanel extends StatelessWidget {
           ShimmerBox(height: UsTokens.s80),
         ],
       ),
+    ),
+  );
+}
+
+class GlassActionButton extends StatelessWidget {
+  const GlassActionButton.extended({
+    super.key,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+  final VoidCallback? onPressed;
+  final Widget icon, label;
+  @override
+  Widget build(BuildContext context) => GlassCard(
+    blur: true,
+    radius: UsTokens.pill,
+    padding: const EdgeInsets.all(UsTokens.s4),
+    child: ExpressiveButton.icon(
+      onPressed: onPressed,
+      icon: icon,
+      label: label,
     ),
   );
 }

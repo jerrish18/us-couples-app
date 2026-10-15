@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -234,6 +235,19 @@ class _UsAppState extends ConsumerState<UsApp> {
       listenable: settings,
       builder: (_, child) => MaterialApp.router(
         title: 'Us',
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('ar'),
+          Locale('he'),
+          Locale('fa'),
+          Locale('ur'),
+          Locale('ta'),
+        ],
         debugShowCheckedModeBanner: false,
         theme: usTheme(Brightness.light),
         darkTheme: usTheme(Brightness.dark),

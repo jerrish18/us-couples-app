@@ -260,6 +260,7 @@ void main() {
     for (final channel in [
       'plugins.it_nomads.com/flutter_secure_storage',
       'com.llfbandit.record',
+      'com.llfbandit.record/messages',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(MethodChannel(channel), (_) async => null);
