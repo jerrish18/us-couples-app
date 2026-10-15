@@ -29,7 +29,7 @@ dependencies:
   share_plus: 11.1.0
   archive: 3.6.1
   app_links: 7.2.2
-  geolocator: 14.1.1
+  geolocator: 14.0.2
   flutter_map: 8.3.2
   latlong2: ^0.9.1
   file_picker: 10.3.10
