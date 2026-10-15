@@ -1,6 +1,6 @@
 # Us 1.1 validation
 
-Backend transaction tests in `supabase/tests/upgrade_v1_1.sql` passed on the project: third-account isolation, location identity and stop, date-locked letter secrecy, author-only message editing and couple pins. All fixtures roll back.
+Backend transaction tests in `supabase/tests/upgrade_v1_1.sql` passed on the project: third-account isolation, location identity and stop, date-locked letter secrecy, author-only message editing, couple pins, hiding expired positions, and cascading deletion of the new feature data. All fixtures roll back.
 
 The deployed integration harness also passed login, simultaneous pairing and third-user lockout, private realtime typing/presence, chat/read receipts, five-minute Miss Me cooldown, date invitation acceptance, actual private photo upload/download, and deletion of rows and Storage objects. Synthetic accounts were removed.
 

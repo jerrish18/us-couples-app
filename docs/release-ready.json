@@ -1,9 +1,12 @@
 {
   "ready": true,
-  "validated_source_commit": "b2fcf51054a22155b616c4581b91a7b74a0ff83c",
-  "validated_run": 38624345330,
+  "version": "1.1.0",
+  "validated_source_commit": "e134447d178a895885886c32605729b08cfaa7c2",
+  "validated_run": 38683504085,
   "email_confirmation_required": true,
   "google_provider_enabled": true,
-  "physical_device_checks": "not performed; see VALIDATION.md",
-  "release_workflow_requires_exact_apk_launch": true
+  "backend_privacy_tests": "passed",
+  "android_7_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
+  "apk_sha256": "a8af1743b9fac2848f5a471a616836d995409d3ad3ceb7e833ebfa17ebf59d85",
+  "physical_device_checks": "Not performed; successful Google account sign-in, FCM, hardware GPS and vendor background behavior still need physical-device verification."
 }

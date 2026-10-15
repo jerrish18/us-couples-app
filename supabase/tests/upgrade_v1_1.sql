@@ -32,5 +32,15 @@ select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001'
 select public.stop_location();
 do $$begin if exists(select 1 from public.live_locations)then raise exception 'Stop did not revoke location';end if;end$$;
 reset role;
+insert into public.live_locations values('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',1,1,5,now()-interval '1 second',now());
+set local role authenticated;
+select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000002',true);
+do $$begin if exists(select 1 from public.live_locations)then raise exception 'Expired position leaked';end if;end$$;
+reset role;
+-- Collections and sealed letter contents cascade with their couple.
+insert into public.memory_collections(id,couple_id,author_id,title)values('40000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','Trip');
+insert into public.memories(couple_id,author_id,media_path,caption,memory_date,collection_id)values('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001/10000000-0000-4000-8000-000000000001/test.jpg','Test',current_date,'40000000-0000-4000-8000-000000000001');
+delete from public.couples where id='20000000-0000-4000-8000-000000000001';
+do $$declare t text;n integer;begin foreach t in array array['live_locations','letters','letter_contents','expenses','memory_collections','memories']loop execute format('select count(*) from public.%I where couple_id=$1',t)into n using '20000000-0000-4000-8000-000000000001'::uuid;if n<>0 then raise exception 'Deletion left rows in %',t;end if;end loop;end$$;
 rollback;
 select 'PASS: third-user isolation, location consent identity/stop, timed-letter secrecy, own-message editing and shared pins' result;
