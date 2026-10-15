@@ -1,14 +1,11 @@
-# Us 1.1.0
+Us 1.2.0 — a fresh home for your story
 
-Install this APK over your existing Us app. Do not uninstall first. The package name and signing certificate are unchanged; version code is 2.
+- New iPhone-inspired design across the app: porcelain light and charcoal dark surfaces, lavender/rose accents, layered cards, a floating five-tab dock, cleaner page headers and feature tiles.
+- Short eased page entrances and tab transitions, respecting Android's reduced-motion preference. Memory cards are built lazily, and photo decoding is bounded to avoid loading full-resolution images while scrolling.
+- A dedicated memory composer previews your photo and asks for caption, date and collection. Choose an existing collection, create one immediately, or keep the memory without a collection.
+- Tap your uploaded memory's three-dot menu → Delete memory. A confirmation explains that deletion removes it for both people. The server verifies the uploader and couple membership, removes the actual private Storage object, and deletes the row and reactions. Move to collection remains available.
+- Same Android package and signing certificate, so install this APK over Us 1.1.0 without uninstalling.
 
-- Explicit cold-start and running-app Google sign-in callbacks, visible retry errors, and deferred auth-state refresh.
-- Targeted realtime updates, immediate save feedback, fewer full reloads and smoother Material 3 screens.
-- Chat search, stars, shared pins, swipe-to-reply, edit, delete for both, six emoji reactions, document attachments (5 MB), link opening, drafts, polls, photo zoom and voice preview/playback controls.
-- Android Share to Us for drafts, photos and PDFs; send is an explicit action.
-- Open when letters, optional server-enforced date locks, expiring availability, equal-split expense records and memory collections.
-- Opt-in live location for 15 minutes, one hour or eight hours; foreground indicator, stop, automatic expiry, last update and accuracy radius. Only the latest position is stored, outside the offline cache. OpenStreetMap is optional and requires no billing/API key.
+Validation: live backend integration tests passed using temporary synthetic accounts, including memory save/delete, real Storage removal, partner authorization and third-account isolation. Flutter tests cover composer selection, new collection creation and saving retry. The exact signed release APK is checked for signature, ARMv7/ARM64 and Android 7 compatibility, installed over 1.1.0, and launched on an Android 7 emulator before publication.
 
-Backend isolation/integration checks pass. Android build, signing, architecture and emulator checks run before publication. Real Google account completion, phone push and hardware GPS/screen-off behavior require physical-device verification; see UPGRADE_VALIDATION.md. GPS accuracy and background execution depend on the phone and surroundings.
-
-Video/music connections, games, ads and analytics are excluded. Existing app features remain available. Email verification stays enabled.
+Physical-device FCM delivery, successful Google account sign-in, hardware GPS, vendor background limits and scrolling frame rate were not measured in this release. No music/video integrations, ads, games, analytics or paid services were added.

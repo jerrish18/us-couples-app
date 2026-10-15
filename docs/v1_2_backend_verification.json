@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "project": "mrtwyopmhmozuawgkuwi",
+  "checks": [
+    "Email/password login and simultaneous pairing race: exactly one second member joins",
+    "Third-account database and private Realtime channel lockout",
+    "Chat delivery, read receipt and server-side Miss Me cooldown",
+    "Date invitation and partner acceptance",
+    "Private photo bytes uploaded and downloaded; third-account signed URL refused",
+    "Explicit memory collection and date stored and read by partner",
+    "Partner cannot delete another person's memory; third account cannot delete any memory",
+    "Uploader deletion removes memory row, reactions and actual Storage photo",
+    "Complete couple deletion removes all test data and real Storage objects"
+  ],
+  "fixtures": "Temporary synthetic accounts and space removed in finally block",
+  "physical_device_push_tested": false,
+  "successful_google_account_login_tested": false
+}
