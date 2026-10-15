@@ -48,6 +48,7 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const Key('save-memory')),
         180,
+        scrollable: find.byType(Scrollable).first,
       );
       await tester.tap(find.byKey(const Key('save-memory')));
       await tester.pumpAndSettle();
@@ -77,7 +78,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('memory-caption')), 'Keep me');
-    await tester.scrollUntilVisible(find.byKey(const Key('save-memory')), 180);
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('save-memory')),
+      180,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byKey(const Key('save-memory')));
     await tester.pumpAndSettle();
     expect(
