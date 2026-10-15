@@ -28,7 +28,15 @@ class SecureSessionStorage extends LocalStorage {
 
 class UsSession extends ChangeNotifier {
   UsSession(this.client) {
-    _auth = client.auth.onAuthStateChange.listen((_) => refresh());
+    _auth = client.auth.onAuthStateChange.listen((_) {
+      ready = false;
+      if (!_disposed) notifyListeners();
+      // Do not run Supabase requests inside an auth callback.
+      unawaited(Future<void>.delayed(Duration.zero, refresh));
+    }, onError: (Object _) {
+      error = 'Sign-in could not finish. Please try again.';
+      ready = true; if (!_disposed) notifyListeners();
+    });
     unawaited(refresh());
   }
   final SupabaseClient client;

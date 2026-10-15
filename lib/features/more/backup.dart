@@ -25,7 +25,7 @@ Future<void> exportBackup(UsSpace space) async {
     final unique=<String>{};
     for(final item in [...messages,...memories]){
       final path=item['media_path'] as String?;if(path==null||!unique.add(path))continue;
-      final id=item['id'] as String,ext=path.endsWith('.m4a')?'m4a':'jpg';
+      final id=item['id'] as String,ext=path.split('.').last;
       final destination=File('${dir.path}/$id.$ext');
       final request=await client.getUrl(Uri.parse(await space.mediaUrl(path)));
       final response=await request.close();if(response.statusCode!=200)throw StateError('Could not export a photo or voice note');

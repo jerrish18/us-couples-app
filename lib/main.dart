@@ -6,6 +6,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/config.dart';
+import 'core/auth_links.dart';
+import 'core/share_inbox.dart';
+import 'features/location/live_location.dart';
+import 'features/location/location_screen.dart';
+import 'features/together/together_screen.dart';
 import 'core/session.dart';
 import 'core/theme.dart';
 import 'core/settings.dart';
@@ -28,7 +33,9 @@ Future<void> main() async {
     await Firebase.initializeApp(options: firebaseOptions);
     stage = 'Supabase';
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey,
-      authOptions: FlutterAuthClientOptions(localStorage: SecureSessionStorage()));
+      authOptions: FlutterAuthClientOptions(localStorage: SecureSessionStorage(), detectSessionInUri: false));
+    await AuthLinks.initialize();
+    await ShareInbox.initialize();
     stage = 'local notifications';
     await UsNotifications.initialize();
     runApp(const ProviderScope(child: UsApp()));
@@ -53,6 +60,7 @@ class UsApp extends ConsumerStatefulWidget {
 class _UsAppState extends ConsumerState<UsApp> {
   late final GoRouter _router;
   StreamSubscription<String>? _notificationTaps;
+  StreamSubscription<dynamic>? _shares;
   @override
   void initState() {
     super.initState();
@@ -79,14 +87,20 @@ class _UsAppState extends ConsumerState<UsApp> {
         GoRoute(path:'/memories',builder:(_,state)=>const MemoriesScreen()),
         GoRoute(path:'/more',builder:(_,state)=>const MoreScreen()),
       ]),
+      GoRoute(path:'/location',builder:(_,state)=>const AppLockGate(child:LocationScreen())),
+      GoRoute(path:'/letters',builder:(_,state)=>const AppLockGate(child:TogetherScreen(kind:'letters'))),
+      GoRoute(path:'/expenses',builder:(_,state)=>const AppLockGate(child:TogetherScreen(kind:'expenses'))),
+      GoRoute(path:'/collections',builder:(_,state)=>const AppLockGate(child:TogetherScreen(kind:'collections'))),
       GoRoute(path:'/lists',builder:(_,state)=>const AppLockGate(child:ListsScreen())),
       GoRoute(path:'/journal',builder:(_,state)=>const AppLockGate(child:JournalScreen())),
     ]);
     _notificationTaps=UsNotifications.taps.stream.listen((route)=>_router.go(route));
+    _shares=ShareInbox.changes.stream.listen((_){if(session.userId!=null&&session.coupleId!=null)_router.go('/chat');});
+    if(ShareInbox.pending.isNotEmpty)WidgetsBinding.instance.addPostFrameCallback((_){if(session.coupleId!=null)_router.go('/chat');});
     unawaited(UsNotifications.bind(session));
   }
   @override
-  void dispose() { _notificationTaps?.cancel(); _router.dispose(); super.dispose(); }
+  void dispose() { _shares?.cancel(); _notificationTaps?.cancel(); _router.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) {final settings=ref.watch(settingsProvider);return ListenableBuilder(listenable:settings,builder:(_,child)=>MaterialApp.router(title:'Us',debugShowCheckedModeBanner:false,
     theme:usTheme(Brightness.light),darkTheme:usTheme(Brightness.dark),themeMode:settings.theme,routerConfig:_router));}
@@ -99,10 +113,11 @@ class UsShell extends ConsumerWidget {
   static const paths=['/','/chat','/calendar','/memories','/more'];
   @override Widget build(BuildContext context,WidgetRef ref) {
     final space=ref.watch(spaceProvider);
+    ref.watch(locationProvider);
     return ListenableBuilder(listenable:space,builder:(context,_)=>Scaffold(
       appBar:AppBar(title:Text(space.session.couple?['name'] as String? ?? 'Us'),
         actions:[if(space.syncing)const Padding(padding:EdgeInsets.all(18),child:SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)))]),
-      body:child,bottomNavigationBar:NavigationBar(selectedIndex:paths.indexOf(path).clamp(0,4),
+      body:AnimatedSwitcher(duration:const Duration(milliseconds:180),child:KeyedSubtree(key:ValueKey(path),child:child)),bottomNavigationBar:NavigationBar(selectedIndex:paths.indexOf(path).clamp(0,4),
         onDestinationSelected:(index)=>context.go(paths[index]),destinations:const [
           NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home),label:'Home'),
           NavigationDestination(icon:Icon(Icons.chat_bubble_outline),selectedIcon:Icon(Icons.chat_bubble),label:'Chat'),

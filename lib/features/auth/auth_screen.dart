@@ -1,3 +1,5 @@
+import 'dart:async';
+import '../../core/auth_links.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,10 +17,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _password = TextEditingController();
   bool _signup = false, _busy = false, _obscure = true;
   String? _message;
+  StreamSubscription<String>? _linkErrors;
+  @override void initState() { super.initState(); _linkErrors = AuthLinks.errors.stream.listen((message) { if(mounted)setState((){_message=message;_busy=false;}); }); }
   Future<void> _google() async {
     setState(() { _busy=true;_message=null; });
-    try { await ref.read(sessionProvider).client.auth.signInWithOAuth(OAuthProvider.google,
-      redirectTo:'com.jerrish18.us://login-callback',authScreenLaunchMode:LaunchMode.externalApplication); }
+    try { final opened = await ref.read(sessionProvider).client.auth.signInWithOAuth(OAuthProvider.google,
+      redirectTo:AuthLinks.redirect,authScreenLaunchMode:LaunchMode.externalApplication);
+      if(!opened)throw StateError('Browser unavailable');
+      if(mounted)setState(()=>_message='Finish signing in with Google, then return to Us.');
+    }
     on AuthException catch(e){if(mounted)setState(()=>_message=e.message);}
     catch(_){if(mounted)setState(()=>_message='Could not open Google sign-in. Please try again.');}
     finally{if(mounted)setState(()=>_busy=false);}
@@ -64,7 +71,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
   @override
-  void dispose() { _email.dispose(); _password.dispose(); super.dispose(); }
+  void dispose() { _linkErrors?.cancel(); _email.dispose(); _password.dispose(); super.dispose(); }
   @override
   Widget build(BuildContext context) => Scaffold(body: SafeArea(child: Center(child:
     SingleChildScrollView(padding: const EdgeInsets.all(28), child: ConstrainedBox(

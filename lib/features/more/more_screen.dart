@@ -11,6 +11,7 @@ import '../../core/ui.dart';
 import '../../core/media.dart';
 import '../../core/notifications.dart';
 import 'backup.dart';
+import '../location/live_location.dart';
 
 class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
@@ -44,7 +45,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
       actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('Keep our space')),
         FilledButton(onPressed:()=>Navigator.pop(c,true),child:const Text('Delete all space data'))]));
     if(yes!=true||!mounted)return;
-    await safely(context,() async {final response=await space.session.client.functions.invoke('delete-space',body:{'couple_id':space.session.coupleId});
+    await safely(context,() async {await ref.read(locationProvider).stop();final response=await space.session.client.functions.invoke('delete-space',body:{'couple_id':space.session.coupleId});
       if(response.status!=200 && response.status!=202)throw StateError('Deletion not completed');
       await space.eraseLocal();await space.session.refresh();
       try{await UsNotifications.unregister(space.session);}catch(_){/* Retry cleanup on the next launch. */}
@@ -53,9 +54,17 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
   @override Widget build(BuildContext context){final space=ref.watch(spaceProvider),settings=ref.watch(settingsProvider);
     return ListenableBuilder(listenable:space,builder:(context,_)=>ListView(padding:const EdgeInsets.fromLTRB(20,10,20,30),children:[
       Card(child:Column(children:[
+        ListTile(leading:const Icon(Icons.location_on_outlined),title:const Text('Live location'),subtitle:const Text('Share by choice, stop anytime'),trailing:const Icon(Icons.chevron_right),onTap:()=>context.push('/location')),
+        ListTile(leading:const Icon(Icons.mail_outline),title:const Text('Open when… letters'),subtitle:const Text('Words for when they need you'),trailing:const Icon(Icons.chevron_right),onTap:()=>context.push('/letters')),
+        ListTile(leading:const Icon(Icons.receipt_long_outlined),title:const Text('Shared expenses'),subtitle:const Text('A simple, equal split'),trailing:const Icon(Icons.chevron_right),onTap:()=>context.push('/expenses')),
+        ListTile(leading:const Icon(Icons.collections_bookmark_outlined),title:const Text('Memory collections'),trailing:const Icon(Icons.chevron_right),onTap:()=>context.push('/collections')),
         ListTile(leading:const Icon(Icons.checklist),title:const Text('Our lists'),subtitle:const Text('Bucket list, to-do, grocery'),trailing:const Icon(Icons.chevron_right),onTap:()=>context.push('/lists')),
         ListTile(leading:const Icon(Icons.menu_book_outlined),title:const Text('Our journal'),subtitle:const Text('Private pages, shared when you choose'),trailing:const Icon(Icons.chevron_right),onTap:()=>context.push('/journal')),
       ])),const SizedBox(height:16),Text('Make it yours',style:Theme.of(context).textTheme.titleLarge),
+      ListTile(leading:const Icon(Icons.do_not_disturb_on_outlined),title:const Text('My availability'),subtitle:Text(space.me?['availability'] as String? ?? 'No status'),onTap:() async {
+        final value=await askText(context,'Let your person know',hint:'Working, free to talk, need a little quiet…',max:80);
+        if(value!=null&&mounted)await safely(context,()=>space.profile({'availability':value,'availability_until':DateTime.now().add(const Duration(hours:4)).toUtc().toIso8601String()}));
+      },trailing:IconButton(tooltip:'Clear status',icon:const Icon(Icons.close),onPressed:()=>safely(context,()=>space.profile({'availability':null,'availability_until':null})))),
       ListTile(leading:const Icon(Icons.person_outline),title:const Text('My name'),subtitle:Text(space.me?['display_name'] as String? ?? 'Your person'),onTap:()=>_text(space,'display_name','Your name')),
       ListTile(leading:const Icon(Icons.favorite_outline),title:const Text('Partner nickname'),subtitle:Text(space.me?['nickname'] as String? ?? 'What I call my person'),onTap:()=>_text(space,'nickname','What do you call your person?')),
       ListTile(leading:const Icon(Icons.photo_camera_outlined),title:const Text('My profile photo'),onTap:()=>safely(context,() async {
@@ -95,7 +104,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
         subtitle:const Text('Includes photos and voice notes. Save the backup privately.'),onTap:_exporting?null:() async {
           setState(()=>_exporting=true);await safely(context,()=>exportBackup(space));if(mounted)setState(()=>_exporting=false);}),
       ListTile(leading:const Icon(Icons.logout),title:const Text('Sign out'),onTap:()=>safely(context,() async {
-        await UsNotifications.unregister(space.session);await space.session.client.auth.signOut();})),
+        await ref.read(locationProvider).stop();await UsNotifications.unregister(space.session);await space.session.client.auth.signOut();})),
       ListTile(leading:const Icon(Icons.link_off,color:Colors.red),title:const Text('Unlink and delete our space'),onTap:()=>_delete(space)),
       const SizedBox(height:20),const Text('Just the two of you. No ads, analytics, games, or public profiles.',textAlign:TextAlign.center),
     ]));

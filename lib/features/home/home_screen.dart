@@ -51,7 +51,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final notes=(space.rows['love_notes']??[]).where((r)=>r['author_id']==space.session.partnerId).toList()..sort((a,b)=>(a['created_at'] as String).compareTo(b['created_at'] as String));
       final taps=List<Map<String,dynamic>>.from(space.rows['miss_me']??[])..sort((a,b)=>(b['created_at'] as String).compareTo(a['created_at'] as String));
       return RefreshIndicator(onRefresh:space.refresh,child:ListView(padding:const EdgeInsets.fromLTRB(20,12,20,30),children:[
-        Text('A little closer, every day.',style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:18),
+        Text('Your little world.',style:Theme.of(context).textTheme.headlineSmall),const SizedBox(height:18),
         if(!space.online)const Padding(padding:EdgeInsets.only(bottom:16),child:Text('Offline · Your chat will sync when you reconnect.')),
         if(space.loading)const LinearProgressIndicator(),
         Card(color:Theme.of(context).colorScheme.primaryContainer,child:Padding(padding:const EdgeInsets.all(26),child:Column(children:[
@@ -82,6 +82,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           selected:space.me?['mood']==m&&space.me?['mood_date']==today,onSelected:(_)=>safely(context,()=>space.profile({'mood':m,'mood_date':today})))).toList()),
         const SizedBox(height:16),Card(child:ListTile(leading:space.partner?['avatar_path']==null?const Icon(Icons.public):ClipOval(child:SizedBox(width:44,height:44,child:PrivatePhoto(space,space.partner!['avatar_path'] as String,height:44))),title:Text(name),
           subtitle:Text('${space.partner?['city']??'Their time'} · ${partnerNow.hour.toString().padLeft(2,'0')}:${partnerNow.minute.toString().padLeft(2,'0')}\nMood: $partnerMood'))),
+        const SizedBox(height:14),
+        if(DateTime.tryParse(space.partner?['availability_until'] as String? ?? '')?.isAfter(DateTime.now())??false)Card(child:ListTile(leading:const Icon(Icons.coffee_outlined),title:Text(space.partner?['availability'] as String? ?? ''),subtitle:Text('Your person · until ${displayTime(space.partner?['availability_until'] as String?)}'))),
+        const SizedBox(height:12),OutlinedButton.icon(onPressed:()=>context.push('/location'),icon:const Icon(Icons.near_me_outlined),label:const Text('Find each other · Live location')),
         const SizedBox(height:14),
         Row(children:[Expanded(child:OutlinedButton.icon(onPressed:()=>context.go('/calendar'),icon:const Icon(Icons.calendar_month),label:const Text('Plan a date'))),
           const SizedBox(width:12),Expanded(child:OutlinedButton.icon(onPressed:()=>context.go('/chat'),icon:const Icon(Icons.chat_bubble_outline),label:const Text('Say hello')))]),
