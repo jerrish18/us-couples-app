@@ -184,6 +184,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
                 const SizedBox(height: UsTokens.s24),
                 GlassCard(
+                  blur: true,
                   child: Form(
                     key: _form,
                     child: Column(
