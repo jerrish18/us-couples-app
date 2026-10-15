@@ -32,7 +32,11 @@ void main() {
         find.byKey(const Key('memory-caption')),
         'Our evening',
       );
-      await tester.scrollUntilVisible(find.text('Date nights'), 180);
+      await tester.scrollUntilVisible(
+        find.text('Date nights'),
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Date nights'));
       await tester.pump();
       await tester.tap(find.byKey(const Key('new-memory-collection')));
