@@ -39,6 +39,9 @@ void main() {
       );
       await tester.tap(find.text('Date nights'));
       await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const Key('new-memory-collection')),
+      );
       await tester.tap(find.byKey(const Key('new-memory-collection')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'Our travels');

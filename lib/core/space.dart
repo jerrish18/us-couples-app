@@ -207,6 +207,12 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
             _notify();
           })
           .onBroadcast(
+            event: 'memories_changed',
+            callback: (_) {
+              if (_current(uid, cid)) unawaited(refresh());
+            },
+          )
+          .onBroadcast(
             event: 'typing',
             callback: (payload) {
               if (!_current(uid, cid)) return;
@@ -353,8 +359,19 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
       );
       if (!_current(uid, cid)) return;
       for (final entry in results) {
-        if ((_revisions[entry.key] ?? 0) == (revisions[entry.key] ?? 0))
+        if ((_revisions[entry.key] ?? 0) == (revisions[entry.key] ?? 0)) {
+          if (entry.key == 'memories') {
+            final currentIds = entry.value.map((r) => r['id']).toSet();
+            for (final memory in rows['memories'] ?? <Map<String, dynamic>>[]) {
+              if (memory['_pending'] != true &&
+                  !currentIds.contains(memory['id']))
+                unawaited(
+                  _evictMemoryPhoto(memory['media_path'] as String, cid),
+                );
+            }
+          }
           rows[entry.key] = entry.value;
+        }
       }
       await _mergePending();
       online = true;
@@ -636,21 +653,36 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
     _notify();
     _cacheLater('memories');
     _cacheLater('reactions');
-    final path = memory['media_path'] as String;
-    final download = _downloads[path];
-    if (download != null) {
-      try {
-        await download;
-      } catch (_) {}
-    }
+    unawaited(_announceMemoryChange());
+    unawaited(_evictMemoryPhoto(memory['media_path'] as String, cid));
+  }
+
+  Future<void> _announceMemoryChange() async {
     try {
+      await _selfChannel?.sendBroadcastMessage(
+        event: 'memories_changed',
+        payload: {},
+      );
+    } catch (_) {
+      /* Periodic and foreground refresh also repair missed broadcasts. */
+    }
+  }
+
+  Future<void> _evictMemoryPhoto(String path, String cid) async {
+    try {
+      final download = _downloads[path];
+      if (download != null) {
+        try {
+          await download;
+        } catch (_) {}
+      }
       final root = await getApplicationSupportDirectory();
       final cached = File(
         '${root.path}/us-media/$cid/received/${const Uuid().v5(Uuid.NAMESPACE_URL, path)}.${path.split('.').last}',
       );
       if (await cached.exists()) await cached.delete();
     } catch (_) {
-      /* The server deletion already succeeded. */
+      /* Server deletion already succeeded. */
     }
   }
 
