@@ -17,7 +17,11 @@ class ShareInbox {
 
   static void _receive(List<SharedMediaFile> files) {
     if (files.isEmpty) return;
-    pending = files.take(5).toList();
+    pending = files
+        .where((file) => Uri.tryParse(file.path)?.scheme != 'com.jerrish18.us')
+        .take(5)
+        .toList();
+    if (pending.isEmpty) return;
     changes.add(pending);
   }
 
