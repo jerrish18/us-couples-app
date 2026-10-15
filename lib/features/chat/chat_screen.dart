@@ -31,7 +31,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   final _text = TextEditingController(), _search = TextEditingController();
   final _scroll = ScrollController(), _focus = FocusNode();
   final _recorder = AudioRecorder();
-  Timer? _recordLimit, _draftTimer, _typingDebounce;
+  Timer? _recordLimit, _draftTimer, _typingDebounce, _searchDebounce;
+  int _searchGeneration = 0;
+  List<Map<String, dynamic>>? _remoteMatches;
+  bool _searchBusy = false;
   StreamSubscription<dynamic>? _shares;
   bool _recording = false,
       _sending = false,
@@ -80,6 +83,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _draftTimer?.cancel();
+    _searchDebounce?.cancel();
     _typingDebounce?.cancel();
     _recordLimit?.cancel();
     _shares?.cancel();
@@ -245,6 +249,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         await _document(space, path: f.path, name: f.path.split('/').last);
       }
     }
+  }
+
+  void _find(UsSpace space) {
+    _searchDebounce?.cancel();
+    final generation = ++_searchGeneration;
+    final query = _search.text.trim();
+    if (query.isEmpty) {
+      setState(() {
+        _remoteMatches = null;
+        _searchBusy = false;
+      });
+      return;
+    }
+    setState(() => _searchBusy = true);
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final pages = await Future.wait(
+          ['body', 'file_name'].map(
+            (field) => space.session.client
+                .from('messages')
+                .select()
+                .eq('couple_id', space.session.coupleId!)
+                .ilike(field, '%$query%')
+                .order('created_at', ascending: false)
+                .limit(100),
+          ),
+        );
+        if (!mounted || generation != _searchGeneration) return;
+        final merged = <String, Map<String, dynamic>>{};
+        for (final page in pages) {
+          for (final row in page) {
+            merged[row['id'] as String] = Map<String, dynamic>.from(row);
+          }
+        }
+        setState(() => _remoteMatches = merged.values.toList());
+      } catch (_) {
+        if (mounted && generation == _searchGeneration) {
+          setState(() => _remoteMatches = null);
+          _notice('Offline · searching messages saved on this phone.');
+        }
+      } finally {
+        if (mounted && generation == _searchGeneration)
+          setState(() => _searchBusy = false);
+      }
+    });
   }
 
   Future<void> _poll(UsSpace space) async {
@@ -702,13 +751,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 child: TextField(
                   controller: _search,
                   autofocus: true,
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) {
+                    setState(() {});
+                    _find(space);
+                  },
+                  maxLength: 100,
+                  buildCounter: (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
                   decoration: const InputDecoration(
                     hintText: 'Search messages or documents',
                     prefixIcon: Icon(Icons.search),
                   ),
                 ),
               ),
+            if (_searchBusy) const LinearProgressIndicator(minHeight: 2),
             if (_starred)
               const Padding(
                 padding: EdgeInsets.all(8),
@@ -1091,7 +1151,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     onPressed: _sending
                         ? null
                         : () => safely(context, () => _shared(space)),
-                    child: const Text('Continue'),
+                    child: Text(
+                      _inbound.every(
+                            (f) =>
+                                f.type == SharedMediaType.text ||
+                                f.type == SharedMediaType.url,
+                          )
+                          ? 'Add to draft'
+                          : 'Send attachments',
+                    ),
                   ),
                 ),
               ),

@@ -20,7 +20,7 @@ class LiveLocation extends ChangeNotifier {
     _sessionChanged();
     _clock = Timer.periodic(const Duration(seconds: 5), (_) {
       if (until != null && !until!.isAfter(DateTime.now())) unawaited(stop());
-      if (!_dead) notifyListeners();
+      if (!_dead && (sharing || locations.isNotEmpty)) notifyListeners();
     });
   }
   final UsSession session;
