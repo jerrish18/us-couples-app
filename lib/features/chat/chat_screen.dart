@@ -659,7 +659,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         return Column(
           children: [
             ListTile(
-              dense: true,
+              contentPadding: const EdgeInsets.fromLTRB(22, 6, 14, 12),
               leading: Badge(
                 backgroundColor: space.partnerOnline
                     ? Colors.green
@@ -912,7 +912,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                         decoration: BoxDecoration(
                                           color: mine
                                               ? colors.primaryContainer
-                                              : colors.surfaceContainerHighest,
+                                              : colors.surfaceContainerLow,
+                                          border: Border.all(
+                                            color: colors.outlineVariant
+                                                .withValues(alpha: .35),
+                                          ),
                                           borderRadius: BorderRadius.only(
                                             topLeft: const Radius.circular(22),
                                             topRight: const Radius.circular(22),
@@ -1206,7 +1210,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             SafeArea(
               top: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(6, 4, 6, 8),
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

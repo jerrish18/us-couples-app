@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/space.dart';
 import '../../core/ui.dart';
+import '../../core/design.dart';
 import '../../core/reminder_dates.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -84,6 +85,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         return ListView(
           padding: const EdgeInsets.all(18),
           children: [
+            const PageHeading(
+              'Our calendar',
+              'Make room for your favourite person.',
+            ),
             Row(
               children: [
                 Expanded(

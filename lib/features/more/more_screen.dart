@@ -10,6 +10,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../core/settings.dart';
 import '../../core/space.dart';
 import '../../core/ui.dart';
+import '../../core/design.dart';
 import '../../core/media.dart';
 import '../../core/notifications.dart';
 import 'backup.dart';
@@ -168,48 +169,53 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
       builder: (context, _) => ListView(
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
         children: [
-          Card(
-            child: Column(
+          const PageHeading(
+            'Our space',
+            'The little things that make it yours.',
+          ),
+          LayoutBuilder(
+            builder: (context, constraints) => GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount:
+                  constraints.maxWidth < 300 ||
+                      MediaQuery.textScalerOf(context).scale(1) > 1.4
+                  ? 1
+                  : 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              mainAxisExtent: MediaQuery.textScalerOf(context).scale(1) > 1.4
+                  ? 185
+                  : 150,
               children: [
-                ListTile(
-                  leading: const Icon(Icons.location_on_outlined),
-                  title: const Text('Live location'),
-                  subtitle: const Text('Share by choice, stop anytime'),
-                  trailing: const Icon(Icons.chevron_right),
+                FeatureTile(
+                  title: 'Live location',
+                  icon: Icons.near_me_rounded,
                   onTap: () => context.push('/location'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.mail_outline),
-                  title: const Text('Open when… letters'),
-                  subtitle: const Text('Words for when they need you'),
-                  trailing: const Icon(Icons.chevron_right),
+                FeatureTile(
+                  title: 'Open when…',
+                  icon: Icons.mail_outline_rounded,
                   onTap: () => context.push('/letters'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.receipt_long_outlined),
-                  title: const Text('Shared expenses'),
-                  subtitle: const Text('A simple, equal split'),
-                  trailing: const Icon(Icons.chevron_right),
+                FeatureTile(
+                  title: 'Expenses',
+                  icon: Icons.receipt_long_rounded,
                   onTap: () => context.push('/expenses'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.collections_bookmark_outlined),
-                  title: const Text('Memory collections'),
-                  trailing: const Icon(Icons.chevron_right),
+                FeatureTile(
+                  title: 'Collections',
+                  icon: Icons.collections_bookmark_rounded,
                   onTap: () => context.push('/collections'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.checklist),
-                  title: const Text('Our lists'),
-                  subtitle: const Text('Bucket list, to-do, grocery'),
-                  trailing: const Icon(Icons.chevron_right),
+                FeatureTile(
+                  title: 'Our lists',
+                  icon: Icons.checklist_rounded,
                   onTap: () => context.push('/lists'),
                 ),
-                ListTile(
-                  leading: const Icon(Icons.menu_book_outlined),
-                  title: const Text('Our journal'),
-                  subtitle: const Text('Private pages, shared when you choose'),
-                  trailing: const Icon(Icons.chevron_right),
+                FeatureTile(
+                  title: 'Our journal',
+                  icon: Icons.auto_stories_rounded,
                   onTap: () => context.push('/journal'),
                 ),
               ],

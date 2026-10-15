@@ -180,6 +180,7 @@ class _PrivatePhotoState extends State<PrivatePhoto> {
             height: widget.height,
             width: double.infinity,
             fit: BoxFit.cover,
+            cacheWidth: 1080,
           )
         : FutureBuilder<String>(
             future: _url,
@@ -189,6 +190,7 @@ class _PrivatePhotoState extends State<PrivatePhoto> {
                     height: widget.height,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    cacheWidth: 1080,
                     errorBuilder: (_, e, st) => _placeholder(),
                   )
                 : _placeholder(),

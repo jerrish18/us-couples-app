@@ -613,6 +613,47 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  Future<void> deleteMemory(String id) async {
+    final memory = (rows['memories'] ?? [])
+        .where((m) => m['id'] == id)
+        .firstOrNull;
+    if (memory == null ||
+        memory['author_id'] != session.userId ||
+        memory['_pending'] == true)
+      throw StateError('Only your uploaded memories can be deleted.');
+    final cid = _cid, uid = _uid;
+    if (cid == null || uid == null) throw StateError('Sign in first.');
+    final response = await session.client.functions.invoke(
+      'delete-memory',
+      body: {'memory_id': id},
+    );
+    if (response.status != 200 || response.data?['deleted'] != true)
+      throw StateError('Memory deletion did not finish. Please retry.');
+    if (!_current(uid, cid)) return;
+    _revisions['memories'] = (_revisions['memories'] ?? 0) + 1;
+    rows['memories']?.removeWhere((m) => m['id'] == id);
+    rows['reactions']?.removeWhere((r) => r['memory_id'] == id);
+    _notify();
+    _cacheLater('memories');
+    _cacheLater('reactions');
+    final path = memory['media_path'] as String;
+    final download = _downloads[path];
+    if (download != null) {
+      try {
+        await download;
+      } catch (_) {}
+    }
+    try {
+      final root = await getApplicationSupportDirectory();
+      final cached = File(
+        '${root.path}/us-media/$cid/received/${const Uuid().v5(Uuid.NAMESPACE_URL, path)}.${path.split('.').last}',
+      );
+      if (await cached.exists()) await cached.delete();
+    } catch (_) {
+      /* The server deletion already succeeded. */
+    }
+  }
+
   Future<void> remove(String table, String id) async {
     _revisions[table] = (_revisions[table] ?? 0) + 1;
     final list = rows[table] ?? [],

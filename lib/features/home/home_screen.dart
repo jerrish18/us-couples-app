@@ -8,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../core/space.dart';
 import '../../core/ui.dart';
+import '../../core/design.dart';
 import '../../core/notifications.dart';
 import '../../core/reminder_dates.dart';
 
@@ -150,11 +151,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
             children: [
-              Text(
-                'Your little world.',
-                style: Theme.of(context).textTheme.headlineSmall,
+              const PageHeading(
+                'Just us.',
+                'Your little world, a little closer.',
               ),
-              const SizedBox(height: 18),
               if (!space.online)
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),
@@ -163,8 +163,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               if (space.loading) const LinearProgressIndicator(),
-              Card(
-                color: Theme.of(context).colorScheme.primaryContainer,
+              StoryPanel(
                 child: Padding(
                   padding: const EdgeInsets.all(26),
                   child: Column(
@@ -238,7 +237,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 label: 'Send Miss Me to your partner',
                 child: AnimatedScale(
                   scale: _heart ? 1.025 : 1,
-                  duration: const Duration(milliseconds: 300),
+                  duration: usMotion(context, 220),
                   child: FilledButton(
                     onPressed: _missBusy ? null : () => _miss(space),
                     style: FilledButton.styleFrom(

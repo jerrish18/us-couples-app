@@ -15,6 +15,7 @@ import 'features/location/location_screen.dart';
 import 'features/together/together_screen.dart';
 import 'core/session.dart';
 import 'core/theme.dart';
+import 'core/design.dart';
 import 'core/settings.dart';
 import 'core/space.dart';
 import 'core/notifications.dart';
@@ -236,7 +237,23 @@ class UsShell extends ConsumerWidget {
       listenable: Listenable.merge([space, live]),
       builder: (context, _) => Scaffold(
         appBar: AppBar(
-          title: Text(space.session.couple?['name'] as String? ?? 'Us'),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.favorite_rounded,
+                size: 17,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  space.session.couple?['name'] as String? ?? 'Us',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
           actions: [
             if (space.syncing)
               const Padding(
@@ -266,40 +283,18 @@ class UsShell extends ConsumerWidget {
                 ),
               ),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 180),
-                child: KeyedSubtree(key: ValueKey(path), child: child),
+              child: PageEntrance(key: ValueKey(path), child: child),
+            ),
+          ],
+        ),
+        bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
+            ? null
+            : UsDock(
+                selected: paths.indexOf(path).clamp(0, 4),
+                onSelect: (index) {
+                  if (path != paths[index]) context.go(paths[index]);
+                },
               ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: paths.indexOf(path).clamp(0, 4),
-          onDestinationSelected: (index) => context.go(paths[index]),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: 'Chat',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.calendar_month_outlined),
-              selectedIcon: Icon(Icons.calendar_month),
-              label: 'Calendar',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.photo_library_outlined),
-              selectedIcon: Icon(Icons.photo_library),
-              label: 'Memories',
-            ),
-            NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
-          ],
-        ),
       ),
     );
   }
