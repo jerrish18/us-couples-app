@@ -32,7 +32,9 @@ jobs:
           cp -R /tmp/us_platform/android ./android
           python3 scripts/prepare_android.py
       - name: Resolve dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          python3 scripts/configure_plugin_compat.py
       - name: Format source
         run: |
           dart run build_runner build --delete-conflicting-outputs
