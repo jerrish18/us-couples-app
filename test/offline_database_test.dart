@@ -19,10 +19,15 @@ void main() {
       {'message_id': 'one', 'user_id': 'partner', 'read_at': 'today'},
       {'message_id': 'two', 'user_id': 'partner', 'read_at': 'today'},
     ]);
+    await first.replaceRows('poll_votes', [
+      {'poll_id': 'one', 'user_id': 'partner', 'choice': 0},
+      {'poll_id': 'two', 'user_id': 'partner', 'choice': 1},
+    ]);
     await first.close();
     final reopened = LocalDatabase.forTest(NativeDatabase(file));
     expect((await reopened.pending()).single.taskId, 'offline');
     expect((await reopened.readRows('message_states')).length, 2);
+    expect((await reopened.readRows('poll_votes')).length, 2);
     await reopened.clear();
     await reopened.close();
     await dir.delete(recursive: true);

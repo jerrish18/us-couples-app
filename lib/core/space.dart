@@ -705,25 +705,33 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
     list.add({...?old, ...value});
     _notify();
     _cacheLater('message_states');
-    final existing = await session.client
-        .from('message_states')
-        .select('user_id')
-        .eq('message_id', id)
-        .eq('user_id', _uid!)
-        .maybeSingle();
-    if (existing == null) {
-      try {
-        await session.client.from('message_states').insert(value);
-        return;
-      } on PostgrestException catch (e) {
-        if (e.code != '23505') rethrow;
+    try {
+      final existing = await session.client
+          .from('message_states')
+          .select('user_id')
+          .eq('message_id', id)
+          .eq('user_id', _uid!)
+          .maybeSingle();
+      if (existing == null) {
+        try {
+          await session.client.from('message_states').insert(value);
+          return;
+        } on PostgrestException catch (e) {
+          if (e.code != '23505') rethrow;
+        }
       }
+      await session.client
+          .from('message_states')
+          .update({field: value[field]})
+          .eq('message_id', id)
+          .eq('user_id', _uid!);
+    } catch (_) {
+      list.removeWhere((r) => r['message_id'] == id && r['user_id'] == _uid);
+      if (old != null) list.add(old);
+      _notify();
+      _cacheLater('message_states');
+      rethrow;
     }
-    await session.client
-        .from('message_states')
-        .update({field: value[field]})
-        .eq('message_id', id)
-        .eq('user_id', _uid!);
   }
 
   Future<void> react(

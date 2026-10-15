@@ -58,6 +58,8 @@ class LocalDatabase extends _$LocalDatabase {
           final id =
               (table == 'message_states'
                       ? '${row['message_id']}:${row['user_id']}'
+                      : table == 'poll_votes'
+                      ? '${row['poll_id']}:${row['user_id']}'
                       : table == 'date_responses'
                       ? '${row['date_id']}:${row['user_id']}'
                       : row['id'] ?? row['user_id'])

@@ -32,8 +32,12 @@ class UsSession extends ChangeNotifier {
   UsSession(this.client) {
     _auth = client.auth.onAuthStateChange.listen(
       (_) {
-        ready = false;
-        if (!_disposed) notifyListeners();
+        if (_observedUser != userId) {
+          _observedUser = userId;
+          couple = null;
+          ready = false;
+          if (!_disposed) notifyListeners();
+        }
         // Do not run Supabase requests inside an auth callback.
         unawaited(Future<void>.delayed(Duration.zero, refresh));
       },
@@ -51,6 +55,7 @@ class UsSession extends ChangeNotifier {
   String? error;
   bool ready = false;
   bool _disposed = false;
+  String? _observedUser;
   int _generation = 0;
   String? get userId => client.auth.currentUser?.id;
   String? get coupleId => couple?['id'] as String?;

@@ -41,8 +41,6 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Test auth validation
         run: flutter test
-      - name: Compile Android foundation
-        run: flutter build apk --debug
       - name: Build signed release candidate
         env:
           US_KEYSTORE_B64: ${{ secrets.US_KEYSTORE_B64 }}
