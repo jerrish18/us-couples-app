@@ -37,11 +37,14 @@ void main() {
         180,
         scrollable: find.byType(Scrollable).first,
       );
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -180));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Date nights'));
       await tester.pump();
       await tester.ensureVisible(
         find.byKey(const Key('new-memory-collection')),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('new-memory-collection')));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).last, 'Our travels');
