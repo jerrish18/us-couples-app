@@ -1,9 +1,10 @@
-import subprocess,time,urllib.request,re
+import subprocess,time,urllib.request,re,os
 from pathlib import Path
 
 def adb(*args):
     return subprocess.check_output(['adb',*args],text=True,timeout=60)
-out=Path('verification');out.mkdir(exist_ok=True)
+out=Path(os.environ.get('US_VERIFICATION_DIR','verification'));out.mkdir(parents=True,exist_ok=True)
+api_level=adb('shell','getprop','ro.build.version.sdk').strip()
 print('Installing the previous public release to verify an in-place upgrade',flush=True)
 previous=Path('/tmp/Us-previous.apk')
 with urllib.request.urlopen('https://github.com/jerrish18/us-couples-app/releases/download/v1.2.0/Us.apk',timeout=60) as response,previous.open('wb') as target:
@@ -59,5 +60,5 @@ logs=adb('logcat' ,'-d','-b','crash')
 if 'FATAL EXCEPTION' in logs or 'Unable to start activity' in logs:
     raise SystemExit('Android reported a crash after launch')
 assert adb('shell','pidof','com.jerrish18.us').strip()
-(out/'install-launch.txt').write_text('PASS: exact signed universal APK installed and reached login on Android API 24; process remains alive.\n')
-print('PASS: signed APK installs and launches on Android 7')
+(out/'install-launch.txt').write_text(f'PASS: exact signed universal APK installed and reached login on Android API {api_level}; process remains alive.\n')
+print(f'PASS: signed APK installs and launches on Android API {api_level}')

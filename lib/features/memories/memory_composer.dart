@@ -119,6 +119,57 @@ class _MemoryComposerState extends State<MemoryComposer> {
           icon: const Icon(Icons.close),
         ),
       ),
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: UsTokens.navMaxWidth),
+              child: Padding(
+                padding: const EdgeInsets.all(UsTokens.s12),
+                child: GlassCard(
+                  blur: true,
+                  padding: const EdgeInsets.all(UsTokens.s12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: UsTokens.s12),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ExpressiveButton.icon(
+                        key: const Key('save-memory'),
+                        onPressed: _busy ? null : _save,
+                        icon: _busy
+                            ? const SizedBox(
+                                width: UsTokens.s16,
+                                height: UsTokens.s16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.check_rounded),
+                        label: Text(_busy ? 'Saving…' : 'Save memory'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -219,27 +270,7 @@ class _MemoryComposerState extends State<MemoryComposer> {
                 ),
               ),
             ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: UsTokens.s12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            const SizedBox(height: UsTokens.s24),
-            ExpressiveButton.icon(
-              key: const Key('save-memory'),
-              onPressed: _busy ? null : _save,
-              icon: _busy
-                  ? const SizedBox(
-                      width: UsTokens.s16,
-                      height: UsTokens.s16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.check_rounded),
-              label: Text(_busy ? 'Saving…' : 'Save memory'),
-            ),
+
             const SizedBox(height: UsTokens.s16),
           ],
         ),

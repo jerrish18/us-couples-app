@@ -302,6 +302,7 @@ void main() {
                 ? const Size(840, 960)
                 : const Size(393, 852);
             tester.view.devicePixelRatio = 1;
+            VisualCapabilities.sdk = variant == 0 ? 35 : 24;
             addTearDown(tester.view.resetPhysicalSize);
             addTearDown(tester.view.resetDevicePixelRatio);
             final session = PreviewSession(), settings = PreviewSettings();
@@ -329,16 +330,31 @@ void main() {
                       textDirection: variant == 1
                           ? TextDirection.rtl
                           : TextDirection.ltr,
-                      child: AmbientMesh(child: child!),
+                      child: RepaintBoundary(
+                        key: key,
+                        child: AmbientMesh(child: child!),
+                      ),
                     ),
                   ),
-                  home: RepaintBoundary(key: key, child: entry.value),
+                  home: entry.value,
                 ),
               ),
             );
             await tester.pump();
             await tester.pump(const Duration(milliseconds: 600));
             await tester.runAsync(() async {
+              for (final width in [
+                UsTokens.photoDecode,
+                UsTokens.previewDecode,
+              ]) {
+                await precacheImage(
+                  ResizeImage(
+                    FileImage(File('test/fixtures/moment.jpg')),
+                    width: width,
+                  ),
+                  key.currentContext!,
+                );
+              }
               await Future<void>.delayed(const Duration(milliseconds: 100));
             });
             await tester.pump();

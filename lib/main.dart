@@ -253,8 +253,12 @@ class _UsAppState extends ConsumerState<UsApp> {
         darkTheme: usTheme(Brightness.dark),
         themeMode: settings.theme,
         routerConfig: _router,
-        builder: (context, child) =>
-            AmbientMesh(child: child ?? const SizedBox.shrink()),
+        builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+          value: Theme.of(context).brightness == Brightness.dark
+              ? SystemUiOverlayStyle.light
+              : SystemUiOverlayStyle.dark,
+          child: AmbientMesh(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

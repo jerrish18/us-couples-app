@@ -127,6 +127,7 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
           body: SafeArea(
             child: Center(
               child: GlassCard(
+                blur: true,
                 padding: const EdgeInsets.all(UsTokens.s24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

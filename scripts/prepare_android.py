@@ -70,3 +70,15 @@ for source, destination in [('us_colors.xml','values/us_colors.xml'),('us_colors
     shutil.copyfile(Path('android_templates')/source,target)
 for launch in Path('android/app/src/main/res').glob('drawable*/launch_background.xml'):
     launch.write_text('<layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item><shape><gradient android:angle="315" android:startColor="@color/us_widget_start" android:endColor="@color/us_widget_end"/></shape></item></layer-list>')
+
+# Use the same launch identity and accent on Android 12+ system splash screens.
+import xml.etree.ElementTree as ET
+for styles in Path('android/app/src/main/res').glob('values*/styles.xml'):
+    tree=ET.parse(styles)
+    for style in tree.getroot().findall('style'):
+        if style.get('name')=='LaunchTheme':
+            for name,value in [('android:windowSplashScreenBackground','@color/us_widget_start'),('android:windowSplashScreenAnimatedIcon','@drawable/us_icon')]:
+                item=style.find(f"item[@name='{name}']")
+                if item is None:item=ET.SubElement(style,'item',{'name':name})
+                item.text=value
+    tree.write(styles,encoding='unicode')
