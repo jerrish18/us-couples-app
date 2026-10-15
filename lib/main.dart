@@ -104,7 +104,9 @@ class _UsAppState extends ConsumerState<UsApp> {
         if (session.coupleId == null)
           return state.uri.path == '/pair' ? null : '/pair';
         if (['/login', '/pair', '/loading'].contains(state.uri.path)) {
-          final route = UsNotifications.initialRoute ?? '/';
+          final route =
+              UsNotifications.initialRoute ??
+              (ShareInbox.pending.isNotEmpty ? '/chat' : '/');
           UsNotifications.initialRoute = null;
           return route;
         }
@@ -229,9 +231,9 @@ class UsShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final space = ref.watch(spaceProvider);
-    ref.watch(locationProvider);
+    final live = ref.watch(locationProvider);
     return ListenableBuilder(
-      listenable: space,
+      listenable: Listenable.merge([space, live]),
       builder: (context, _) => Scaffold(
         appBar: AppBar(
           title: Text(space.session.couple?['name'] as String? ?? 'Us'),
@@ -247,9 +249,29 @@ class UsShell extends ConsumerWidget {
               ),
           ],
         ),
-        body: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          child: KeyedSubtree(key: ValueKey(path), child: child),
+        body: Column(
+          children: [
+            if (live.sharing)
+              Material(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(Icons.my_location),
+                  title: const Text('Live location is on'),
+                  onTap: () => context.push('/location'),
+                  trailing: TextButton(
+                    onPressed: live.stop,
+                    child: const Text('Stop'),
+                  ),
+                ),
+              ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 180),
+                child: KeyedSubtree(key: ValueKey(path), child: child),
+              ),
+            ),
+          ],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: paths.indexOf(path).clamp(0, 4),

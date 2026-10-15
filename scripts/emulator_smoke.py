@@ -1,12 +1,19 @@
-import subprocess,time
+import subprocess,time,urllib.request
 from pathlib import Path
 
 def adb(*args):
     return subprocess.check_output(['adb',*args],text=True,timeout=60)
 out=Path('verification');out.mkdir(exist_ok=True)
-print('Installing signed APK',flush=True)
+print('Installing the previous public release to verify an in-place upgrade',flush=True)
+previous=Path('/tmp/Us-previous.apk')
+with urllib.request.urlopen('https://github.com/jerrish18/us-couples-app/releases/download/v1.0.0/Us.apk',timeout=60) as response,previous.open('wb') as target:
+    while chunk:=response.read(1024*1024):target.write(chunk)
+assert 'Success' in adb('install','--no-streaming',str(previous))
+old_uid=adb('shell','pm','list','packages','-U','com.jerrish18.us').strip()
+print('Installing signed APK update',flush=True)
 assert 'Success' in adb('install','--no-streaming','-r','release/Us.apk')
-print('Installation succeeded; starting app',flush=True)
+assert old_uid==adb('shell','pm','list','packages','-U','com.jerrish18.us').strip()
+print('In-place update succeeded with unchanged app identity; starting app',flush=True)
 adb('logcat','-c')
 print(adb('shell','am','start','-n','com.jerrish18.us/.MainActivity'),flush=True)
 deadline=time.monotonic()+60

@@ -129,6 +129,8 @@ class LiveLocation extends ChangeNotifier {
               intervalDuration: const Duration(seconds: 5),
               foregroundNotificationConfig: const ForegroundNotificationConfig(
                 notificationTitle: 'Us · Live location is on',
+                notificationIcon: AndroidResource(name: 'us_notification'),
+                notificationChannelName: 'Us live location',
                 notificationText: 'Your partner can see your position. Open Us → Live location to stop.',
                 enableWakeLock: true,
                 setOngoing: true,
