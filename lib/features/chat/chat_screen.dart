@@ -632,8 +632,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 )
                 .map((s) => s['message_id'])
                 .toSet();
+        final searchable = <String, Map<String, dynamic>>{
+          for (final m in space.items) m['id'] as String: m,
+          if (_searching && _remoteMatches != null)
+            for (final m in _remoteMatches!) m['id'] as String: m,
+        };
         final messages =
-            space.items
+            searchable.values
                 .where(
                   (m) =>
                       !hidden.contains(m['id']) &&
