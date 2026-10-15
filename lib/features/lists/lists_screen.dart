@@ -42,125 +42,146 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
           final items = (space.rows['list_items'] ?? [])
               .where((r) => r['list_kind'] == _kind)
               .toList();
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(
-              UsTokens.s20,
-              UsTokens.s20,
-              UsTokens.s20,
-              UsTokens.s88,
-            ),
-            children: [
-              const PageHeading(
-                'Little plans.\nBig memories.',
-                'From everyday things to someday dreams.',
+          return SpaceBody(
+            space: space,
+            table: 'list_items',
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                UsTokens.s20,
+                UsTokens.s20,
+                UsTokens.s20,
+                UsTokens.s88,
               ),
-              TintedTile(
-                accent: Accent.green,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AnimatedCounter(
-                            value: items
-                                .where((item) => item['completed'] == true)
-                                .length,
-                            style: Theme.of(context).textTheme.displaySmall,
+              children: [
+                const PageHeading(
+                  'Little plans.\nBig memories.',
+                  'From everyday things to someday dreams.',
+                ),
+                TintedTile(
+                  accent: Accent.green,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            AnimatedCounter(
+                              value: items
+                                  .where((item) => item['completed'] == true)
+                                  .length,
+                              style: Theme.of(context).textTheme.displaySmall,
+                            ),
+                            Text('of ${items.length} little plans complete'),
+                          ],
+                        ),
+                      ),
+                      ProgressRing(
+                        value: items.isEmpty
+                            ? 0
+                            : items
+                                      .where(
+                                        (item) => item['completed'] == true,
+                                      )
+                                      .length /
+                                  items.length,
+                        size: UsTokens.s88,
+                        child: const FlowerBadge(
+                          icon: Icons.check_rounded,
+                          accent: Accent.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: UsTokens.s24),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final kind in ['bucket', 'todo', 'grocery'])
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(
+                            end: UsTokens.s8,
                           ),
-                          Text('of ${items.length} little plans complete'),
+                          child: ChoiceChip(
+                            label: Text(
+                              kind == 'bucket'
+                                  ? 'Bucket'
+                                  : kind == 'todo'
+                                  ? 'To-do'
+                                  : 'Grocery',
+                            ),
+                            selected: _kind == kind,
+                            onSelected: (_) => setState(() => _kind = kind),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: UsTokens.s24),
+                if (items.isEmpty)
+                  const EmptyCard(
+                    'Make a little plan',
+                    'Both of you can add, edit, and check off items.',
+                    icon: Icons.checklist,
+                  ),
+                ...items.map(
+                  (item) => GlassCard(
+                    padding: EdgeInsets.zero,
+                    child: CheckboxListTile(
+                      value: item['completed'] == true,
+                      onChanged: (value) => safely(
+                        context,
+                        () => space.update('list_items', item['id'] as String, {
+                          'completed': value,
+                        }),
+                      ),
+                      title: Text(
+                        item['title'] as String,
+                        style: TextStyle(
+                          decoration: item['completed'] == true
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                      secondary: PopupMenuButton<String>(
+                        onSelected: (action) async {
+                          if (action == 'delete') {
+                            await safely(
+                              context,
+                              () => space.remove(
+                                'list_items',
+                                item['id'] as String,
+                              ),
+                            );
+                            return;
+                          }
+                          final title = await askText(
+                            context,
+                            'Edit item',
+                            initial: item['title'] as String,
+                            max: 500,
+                          );
+                          if (title != null && context.mounted)
+                            await safely(
+                              context,
+                              () => space.update(
+                                'list_items',
+                                item['id'] as String,
+                                {'title': title},
+                              ),
+                            );
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'edit', child: Text('Edit')),
+                          PopupMenuItem(value: 'delete', child: Text('Remove')),
                         ],
                       ),
                     ),
-                    ProgressRing(
-                      value: items.isEmpty
-                          ? 0
-                          : items
-                                    .where((item) => item['completed'] == true)
-                                    .length /
-                                items.length,
-                      size: UsTokens.s88,
-                      child: const FlowerBadge(
-                        icon: Icons.check_rounded,
-                        accent: Accent.green,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: UsTokens.s24),
-              SegmentedButton<String>(
-                segments: const [
-                  ButtonSegment(value: 'bucket', label: Text('Bucket')),
-                  ButtonSegment(value: 'todo', label: Text('To-do')),
-                  ButtonSegment(value: 'grocery', label: Text('Grocery')),
-                ],
-                selected: {_kind},
-                onSelectionChanged: (v) => setState(() => _kind = v.first),
-              ),
-              const SizedBox(height: UsTokens.s24),
-              if (items.isEmpty)
-                const EmptyCard(
-                  'Make a little plan',
-                  'Both of you can add, edit, and check off items.',
-                  icon: Icons.checklist,
-                ),
-              ...items.map(
-                (item) => GlassCard(
-                  padding: EdgeInsets.zero,
-                  child: CheckboxListTile(
-                    value: item['completed'] == true,
-                    onChanged: (value) => safely(
-                      context,
-                      () => space.update('list_items', item['id'] as String, {
-                        'completed': value,
-                      }),
-                    ),
-                    title: Text(
-                      item['title'] as String,
-                      style: TextStyle(
-                        decoration: item['completed'] == true
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                    secondary: PopupMenuButton<String>(
-                      onSelected: (action) async {
-                        if (action == 'delete') {
-                          await safely(
-                            context,
-                            () => space.remove(
-                              'list_items',
-                              item['id'] as String,
-                            ),
-                          );
-                          return;
-                        }
-                        final title = await askText(
-                          context,
-                          'Edit item',
-                          initial: item['title'] as String,
-                          max: 500,
-                        );
-                        if (title != null && context.mounted)
-                          await safely(
-                            context,
-                            () => space.update(
-                              'list_items',
-                              item['id'] as String,
-                              {'title': title},
-                            ),
-                          );
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'edit', child: Text('Edit')),
-                        PopupMenuItem(value: 'delete', child: Text('Remove')),
-                      ],
-                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),

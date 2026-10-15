@@ -141,168 +141,172 @@ class TogetherScreen extends ConsumerWidget {
               .where((r) => r['author_id'] != space.session.userId)
               .fold<double>(0, (v, r) => v + (r['amount'] as num).toDouble());
           final balance = (paidMe - paidPartner) / 2;
-          return UsRefresh(
-            onRefresh: space.refresh,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(
-                UsTokens.s20,
-                UsTokens.s12,
-                UsTokens.s20,
-                UsTokens.s112,
-              ),
-              children: [
-                PageHeading(
-                  kind == 'letters'
-                      ? 'Love, in\nenvelopes.'
-                      : kind == 'expenses'
-                      ? 'A little more\nin balance.'
-                      : 'Chapters of us.',
-                  kind == 'letters'
-                      ? 'Little words, for exactly the right moment.'
-                      : kind == 'expenses'
-                      ? 'A little less “who paid?”'
-                      : 'Make room for every memory.',
-                  trailing: FlowerBadge(
-                    icon: kind == 'letters'
-                        ? Icons.mail_rounded
-                        : kind == 'expenses'
-                        ? Icons.receipt_long_rounded
-                        : Icons.folder_rounded,
-                    accent: kind == 'letters'
-                        ? Accent.pink
-                        : kind == 'expenses'
-                        ? Accent.green
-                        : Accent.coral,
-                  ),
+          return SpaceBody(
+            space: space,
+            table: table,
+            child: UsRefresh(
+              onRefresh: space.refresh,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(
+                  UsTokens.s20,
+                  UsTokens.s12,
+                  UsTokens.s20,
+                  UsTokens.s112,
                 ),
-                if (kind == 'expenses')
-                  TintedTile(
-                    accent: Accent.green,
-                    padding: EdgeInsets.zero,
-                    child: Padding(
-                      padding: const EdgeInsets.all(UsTokens.s20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Split equally · ₹${((paidMe + paidPartner) / 2).toStringAsFixed(2)} each',
-                          ),
-                          const SizedBox(height: UsTokens.s8),
-                          Text(
-                            balance.abs() < .01
-                                ? 'You’re even'
-                                : balance > 0
-                                ? 'Your person owes you ₹${balance.toStringAsFixed(2)}'
-                                : 'You owe ₹${(-balance).toStringAsFixed(2)}',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          const Text(
-                            'Records only. No bank connection or payments.',
-                          ),
-                        ],
-                      ),
+                children: [
+                  PageHeading(
+                    kind == 'letters'
+                        ? 'Love, in\nenvelopes.'
+                        : kind == 'expenses'
+                        ? 'A little more\nin balance.'
+                        : 'Chapters of us.',
+                    kind == 'letters'
+                        ? 'Little words, for exactly the right moment.'
+                        : kind == 'expenses'
+                        ? 'A little less “who paid?”'
+                        : 'Make room for every memory.',
+                    trailing: FlowerBadge(
+                      icon: kind == 'letters'
+                          ? Icons.mail_rounded
+                          : kind == 'expenses'
+                          ? Icons.receipt_long_rounded
+                          : Icons.folder_rounded,
+                      accent: kind == 'letters'
+                          ? Accent.pink
+                          : kind == 'expenses'
+                          ? Accent.green
+                          : Accent.coral,
                     ),
                   ),
-                if (rows.isEmpty)
-                  const EmptyCard(
-                    'Something lovely starts here',
-                    'Tap the button below to add your first one.',
-                  ),
-                for (final r in rows)
-                  Padding(
-                    padding: const EdgeInsets.only(top: UsTokens.s12),
-                    child: GlassCard(
+                  if (kind == 'expenses')
+                    TintedTile(
+                      accent: Accent.green,
                       padding: EdgeInsets.zero,
-                      child: ListTile(
-                        leading: FlowerBadge(
-                          size: UsTokens.s48,
-                          accent: kind == 'letters'
-                              ? Accent.pink
-                              : kind == 'expenses'
-                              ? Accent.green
-                              : Accent.coral,
-                          icon: kind == 'letters'
-                              ? Icons.mail_outline
-                              : kind == 'expenses'
-                              ? Icons.receipt_long_outlined
-                              : Icons.collections_bookmark_outlined,
+                      child: Padding(
+                        padding: const EdgeInsets.all(UsTokens.s20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Split equally · ₹${((paidMe + paidPartner) / 2).toStringAsFixed(2)} each',
+                            ),
+                            const SizedBox(height: UsTokens.s8),
+                            Text(
+                              balance.abs() < .01
+                                  ? 'You’re even'
+                                  : balance > 0
+                                  ? 'Your person owes you ₹${balance.toStringAsFixed(2)}'
+                                  : 'You owe ₹${(-balance).toStringAsFixed(2)}',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const Text(
+                              'Records only. No bank connection or payments.',
+                            ),
+                          ],
                         ),
-                        title: Text(r['title'] as String),
-                        subtitle: Text(
-                          kind == 'letters'
-                              ? 'Open when ${r['open_when']}\n${r['author_id'] == space.session.userId ? 'Written by you' : 'From your person'}${r['unlock_at'] != null ? ' · Opens ${displayDate(r['unlock_at'] as String)}' : ''}'
-                              : kind == 'expenses'
-                              ? '₹${(r['amount'] as num).toStringAsFixed(2)} · ${r['author_id'] == space.session.userId ? 'Paid by you' : 'Paid by your person'}'
-                              : '${(space.rows['memories'] ?? []).where((m) => m['collection_id'] == r['id']).length} memories · add photos from Memories',
-                        ),
-                        onTap: kind != 'letters'
-                            ? null
-                            : () => safely(context, () async {
-                                final result = await space.session.client
-                                    .from('letter_contents')
-                                    .select('body')
-                                    .eq('id', r['id'] as String)
-                                    .maybeSingle();
-                                if (!context.mounted) return;
-                                await showGlassDialog<void>(
-                                  context: context,
-                                  builder: (c) => GlassDialog(
-                                    title: Text(r['title'] as String),
-                                    content: SingleChildScrollView(
-                                      child: SelectableText(
-                                        result?['body'] as String? ??
-                                            'This letter is sealed until ${displayDate(r['unlock_at'] as String?)}. A little patience, a little love.',
-                                      ),
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(c),
-                                        child: const Text('Close'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }),
-                        trailing:
-                            r['author_id'] == space.session.userId &&
-                                kind != 'collections'
-                            ? IconButton(
-                                tooltip: 'Delete',
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async {
-                                  final yes = await showGlassDialog<bool>(
+                      ),
+                    ),
+                  if (rows.isEmpty)
+                    const EmptyCard(
+                      'Something lovely starts here',
+                      'Tap the button below to add your first one.',
+                    ),
+                  for (final r in rows)
+                    Padding(
+                      padding: const EdgeInsets.only(top: UsTokens.s12),
+                      child: GlassCard(
+                        padding: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: FlowerBadge(
+                            size: UsTokens.s48,
+                            accent: kind == 'letters'
+                                ? Accent.pink
+                                : kind == 'expenses'
+                                ? Accent.green
+                                : Accent.coral,
+                            icon: kind == 'letters'
+                                ? Icons.mail_outline
+                                : kind == 'expenses'
+                                ? Icons.receipt_long_outlined
+                                : Icons.collections_bookmark_outlined,
+                          ),
+                          title: Text(r['title'] as String),
+                          subtitle: Text(
+                            kind == 'letters'
+                                ? 'Open when ${r['open_when']}\n${r['author_id'] == space.session.userId ? 'Written by you' : 'From your person'}${r['unlock_at'] != null ? ' · Opens ${displayDate(r['unlock_at'] as String)}' : ''}'
+                                : kind == 'expenses'
+                                ? '₹${(r['amount'] as num).toStringAsFixed(2)} · ${r['author_id'] == space.session.userId ? 'Paid by you' : 'Paid by your person'}'
+                                : '${(space.rows['memories'] ?? []).where((m) => m['collection_id'] == r['id']).length} memories · add photos from Memories',
+                          ),
+                          onTap: kind != 'letters'
+                              ? null
+                              : () => safely(context, () async {
+                                  final result = await space.session.client
+                                      .from('letter_contents')
+                                      .select('body')
+                                      .eq('id', r['id'] as String)
+                                      .maybeSingle();
+                                  if (!context.mounted) return;
+                                  await showGlassDialog<void>(
                                     context: context,
                                     builder: (c) => GlassDialog(
-                                      title: const Text('Delete this item?'),
+                                      title: Text(r['title'] as String),
+                                      content: SingleChildScrollView(
+                                        child: SelectableText(
+                                          result?['body'] as String? ??
+                                              'This letter is sealed until ${displayDate(r['unlock_at'] as String?)}. A little patience, a little love.',
+                                        ),
+                                      ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(c, false),
-                                          child: const Text('Keep'),
-                                        ),
-                                        ExpressiveButton(
-                                          onPressed: () =>
-                                              Navigator.pop(c, true),
-                                          child: const Text('Delete'),
+                                          onPressed: () => Navigator.pop(c),
+                                          child: const Text('Close'),
                                         ),
                                       ],
                                     ),
                                   );
-                                  if (yes == true && context.mounted)
-                                    await safely(
-                                      context,
-                                      () => space.remove(
-                                        table,
-                                        r['id'] as String,
+                                }),
+                          trailing:
+                              r['author_id'] == space.session.userId &&
+                                  kind != 'collections'
+                              ? IconButton(
+                                  tooltip: 'Delete',
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () async {
+                                    final yes = await showGlassDialog<bool>(
+                                      context: context,
+                                      builder: (c) => GlassDialog(
+                                        title: const Text('Delete this item?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(c, false),
+                                            child: const Text('Keep'),
+                                          ),
+                                          ExpressiveButton(
+                                            onPressed: () =>
+                                                Navigator.pop(c, true),
+                                            child: const Text('Delete'),
+                                          ),
+                                        ],
                                       ),
                                     );
-                                },
-                              )
-                            : null,
+                                    if (yes == true && context.mounted)
+                                      await safely(
+                                        context,
+                                        () => space.remove(
+                                          table,
+                                          r['id'] as String,
+                                        ),
+                                      );
+                                  },
+                                )
+                              : null,
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           );
         },

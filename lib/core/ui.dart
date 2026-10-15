@@ -212,3 +212,40 @@ class _PrivatePhotoState extends State<PrivatePhoto> {
     ),
   );
 }
+
+/// Shared presentation for missing data and offline state. Services are untouched.
+class SpaceBody extends StatelessWidget {
+  const SpaceBody({
+    super.key,
+    required this.space,
+    required this.child,
+    this.table,
+  });
+  final UsSpace space;
+  final Widget child;
+  final String? table;
+  @override
+  Widget build(BuildContext context) {
+    if (space.loading && (table == null || (space.rows[table] ?? []).isEmpty))
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(UsTokens.s24),
+          child: LoadingPanel(),
+        ),
+      );
+    if (space.online) return child;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(UsTokens.s12),
+          child: StateBanner(
+            message:
+                space.error ?? 'Offline · Your saved moments are still here.',
+            icon: Icons.cloud_off_rounded,
+          ),
+        ),
+        Expanded(child: child),
+      ],
+    );
+  }
+}

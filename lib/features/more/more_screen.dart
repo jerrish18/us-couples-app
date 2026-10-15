@@ -184,12 +184,12 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount:
                   constraints.maxWidth < 300 ||
-                      MediaQuery.textScalerOf(context).scale(1) > 1.4
+                      MediaQuery.textScalerOf(context).scale(1) > 1.25
                   ? 1
                   : 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              mainAxisExtent: MediaQuery.textScalerOf(context).scale(1) > 1.4
+              mainAxisExtent: MediaQuery.textScalerOf(context).scale(1) > 1.25
                   ? 185
                   : 150,
               children: [

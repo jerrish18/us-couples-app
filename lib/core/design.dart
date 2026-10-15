@@ -678,9 +678,13 @@ class AnimatedCounter extends StatelessWidget {
       tween: Tween(begin: 0, end: value.toDouble()),
       duration: usMotion(context, 500),
       curve: Curves.easeOutCubic,
-      builder: (_, v, _) => Text(
-        '${v.round()}',
-        style: style ?? Theme.of(context).textTheme.displayLarge,
+      builder: (_, v, _) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          '${v.round()}',
+          style: style ?? Theme.of(context).textTheme.displayLarge,
+        ),
       ),
     ),
   );

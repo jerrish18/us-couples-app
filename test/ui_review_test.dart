@@ -266,6 +266,7 @@ void main() {
     }
   });
   final screens = <String, Widget>{
+    'lock': const AppLockGate(child: SizedBox()),
     'home': const UsShell(path: '/', child: HomeScreen()),
     'chat': const UsShell(path: '/chat', child: ChatScreen()),
     'calendar': const UsShell(path: '/calendar', child: CalendarScreen()),
@@ -290,62 +291,79 @@ void main() {
   };
   for (final entry in screens.entries) {
     for (final dark in [false, true]) {
-      testWidgets(
-        '1.5 ${entry.key} ${dark ? 'dark' : 'light'} layout and snapshot',
-        (tester) async {
-          tester.view.physicalSize = const Size(393, 852);
-          tester.view.devicePixelRatio = 1;
-          addTearDown(tester.view.resetPhysicalSize);
-          addTearDown(tester.view.resetDevicePixelRatio);
-          final session = PreviewSession(), settings = PreviewSettings();
-          final space = PreviewSpace(session),
-              location = PreviewLocation(session);
-          final key = GlobalKey();
-          await tester.pumpWidget(
-            ProviderScope(
-              overrides: [
-                sessionProvider.overrideWithValue(session),
-                spaceProvider.overrideWithValue(space),
-                settingsProvider.overrideWithValue(settings),
-                locationProvider.overrideWithValue(location),
-              ],
-              child: MaterialApp(
-                theme: usTheme(dark ? Brightness.dark : Brightness.light),
-                builder: (context, child) => MediaQuery(
-                  data: MediaQuery.of(context)
-                      .copyWith(disableAnimations: true),
-                  child: AmbientMesh(child: child!),
+      for (final variant in [0, 1, 2]) {
+        testWidgets(
+          '1.5 ${entry.key} ${dark ? 'dark' : 'light'} variant $variant layout and snapshot',
+          (tester) async {
+            tester.view.physicalSize = variant == 1
+                ? const Size(320, 740)
+                : variant == 2
+                ? const Size(840, 960)
+                : const Size(393, 852);
+            tester.view.devicePixelRatio = 1;
+            addTearDown(tester.view.resetPhysicalSize);
+            addTearDown(tester.view.resetDevicePixelRatio);
+            final session = PreviewSession(), settings = PreviewSettings();
+            settings.locked = entry.key == 'lock';
+            settings.pin = '1234';
+            final space = PreviewSpace(session),
+                location = PreviewLocation(session);
+            final key = GlobalKey();
+            await tester.pumpWidget(
+              ProviderScope(
+                overrides: [
+                  sessionProvider.overrideWithValue(session),
+                  spaceProvider.overrideWithValue(space),
+                  settingsProvider.overrideWithValue(settings),
+                  locationProvider.overrideWithValue(location),
+                ],
+                child: MaterialApp(
+                  theme: usTheme(dark ? Brightness.dark : Brightness.light),
+                  builder: (context, child) => MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      disableAnimations: true,
+                      textScaler: TextScaler.linear(variant == 1 ? 1.4 : 1),
+                    ),
+                    child: Directionality(
+                      textDirection: variant == 1
+                          ? TextDirection.rtl
+                          : TextDirection.ltr,
+                      child: AmbientMesh(child: child!),
+                    ),
+                  ),
+                  home: RepaintBoundary(key: key, child: entry.value),
                 ),
-                home: RepaintBoundary(key: key, child: entry.value),
               ),
-            ),
-          );
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 600));
-          await tester.runAsync(() async {
-            await Future<void>.delayed(const Duration(milliseconds: 100));
-          });
-          await tester.pump();
-          expect(tester.takeException(), isNull, reason: entry.key);
-          final boundary =
-              key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-          await tester.runAsync(() async {
-            final image = await boundary.toImage();
-            final bytes = await image.toByteData(
-              format: ui.ImageByteFormat.png,
             );
-            await File('ui-review/${entry.key}-${dark ? 'dark' : 'light'}.png')
-                .writeAsBytes(bytes!.buffer.asUint8List());
-            image.dispose();
-          });
-          await tester.pumpWidget(const SizedBox());
-          await tester.pump();
-          space.dispose();
-          location.dispose();
-          settings.dispose();
-          session.dispose();
-        },
-      );
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 600));
+            await tester.runAsync(() async {
+              await Future<void>.delayed(const Duration(milliseconds: 100));
+            });
+            await tester.pump();
+            expect(tester.takeException(), isNull, reason: entry.key);
+            final boundary =
+                key.currentContext!.findRenderObject()!
+                    as RenderRepaintBoundary;
+            await tester.runAsync(() async {
+              final image = await boundary.toImage();
+              final bytes = await image.toByteData(
+                format: ui.ImageByteFormat.png,
+              );
+              await File(
+                'ui-review/${entry.key}-${dark ? 'dark' : 'light'}-$variant.png',
+              ).writeAsBytes(bytes!.buffer.asUint8List());
+              image.dispose();
+            });
+            await tester.pumpWidget(const SizedBox());
+            await tester.pump();
+            space.dispose();
+            location.dispose();
+            settings.dispose();
+            session.dispose();
+          },
+        );
+      }
     }
   }
   test('All feature accents retain AA body contrast in light and dark', () {

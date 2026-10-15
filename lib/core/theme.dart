@@ -121,6 +121,7 @@ abstract final class UsTokens {
       font26 = 26.0,
       font34 = 34.0;
   static const previewDecode = 960;
+  static const navMaxWidth = 560.0;
   static const card = 32.0,
       pill = 999.0,
       blur = 24.0,
@@ -278,6 +279,7 @@ ThemeData usTheme(Brightness brightness) {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
+        foregroundColor: colors.onSurface,
         minimumSize: const Size(UsTokens.s48, UsTokens.s48),
         shape: const StadiumBorder(),
       ),

@@ -251,6 +251,13 @@ class UsShell extends ConsumerWidget {
   final String path;
   final Widget child;
   static const paths = ['/', '/chat', '/calendar', '/memories', '/more'];
+  static const tables = {
+    '/': 'profiles',
+    '/chat': 'messages',
+    '/calendar': 'dates',
+    '/memories': 'memories',
+    '/more': 'profiles',
+  };
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final space = ref.watch(spaceProvider);
@@ -347,7 +354,14 @@ class UsShell extends ConsumerWidget {
                     Accent.pink,
                     Accent.lavender,
                   ][paths.indexOf(path).clamp(0, 4)],
-                  child: PageEntrance(key: ValueKey(path), child: child),
+                  child: PageEntrance(
+                    key: ValueKey(path),
+                    child: SpaceBody(
+                      space: space,
+                      table: tables[path],
+                      child: child,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -355,11 +369,19 @@ class UsShell extends ConsumerWidget {
         ),
         bottomNavigationBar: MediaQuery.viewInsetsOf(context).bottom > 0
             ? null
-            : UsDock(
-                selected: paths.indexOf(path).clamp(0, 4),
-                onSelect: (index) {
-                  if (path != paths[index]) context.go(paths[index]);
-                },
+            : Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: UsTokens.navMaxWidth,
+                  ),
+                  child: UsDock(
+                    selected: paths.indexOf(path).clamp(0, 4),
+                    onSelect: (index) {
+                      if (path != paths[index]) context.go(paths[index]);
+                    },
+                  ),
+                ),
               ),
       ),
     );

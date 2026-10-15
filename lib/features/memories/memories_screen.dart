@@ -215,6 +215,11 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                   ],
                 );
               final m = memories[index - 1];
+              final hearted = (space.rows['reactions'] ?? []).any(
+                (r) =>
+                    r['memory_id'] == m['id'] &&
+                    r['user_id'] == space.session.userId,
+              );
               final hearts = (space.rows['reactions'] ?? [])
                   .where((r) => r['memory_id'] == m['id'])
                   .length;
