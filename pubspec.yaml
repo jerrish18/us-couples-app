@@ -1,7 +1,7 @@
 name: us
 description: A private space for two.
 publish_to: none
-version: 1.2.0+3
+version: 1.5.0+4
 environment:
   sdk: '>=3.8.0 <4.0.0'
 dependencies:
@@ -41,3 +41,17 @@ dev_dependencies:
     sdk: flutter
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit.ttf
+          weight: 400
+        - asset: assets/fonts/Outfit.ttf
+          weight: 500
+        - asset: assets/fonts/Outfit.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit.ttf
+          weight: 700
+        - asset: assets/fonts/Outfit.ttf
+          weight: 800

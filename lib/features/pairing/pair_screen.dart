@@ -1,3 +1,5 @@
+import '../../core/design.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,7 +56,7 @@ class _PairScreenState extends ConsumerState<PairScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
+    appBar: GlassAppBar(
       title: const Text('Your space'),
       actions: [
         IconButton(
@@ -100,7 +102,7 @@ class _PairScreenState extends ConsumerState<PairScreen> {
             if (date != null && mounted) setState(() => _since = date);
           },
         ),
-        FilledButton(
+        ExpressiveButton(
           onPressed: _busy ? null : () => _action(true),
           child: const Text('Create our space'),
         ),

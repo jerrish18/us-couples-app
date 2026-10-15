@@ -1,3 +1,5 @@
+import '../../core/design.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -26,7 +28,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
   Widget build(BuildContext context) {
     final live = ref.watch(locationProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Live location')),
+      appBar: GlassAppBar(title: const Text('Live location')),
       body: ListenableBuilder(
         listenable: live,
         builder: (context, _) {
@@ -67,7 +69,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                         ),
                       const SizedBox(height: 12),
                       if (live.sharing)
-                        FilledButton.icon(
+                        ExpressiveButton.icon(
                           onPressed: () => live.stop(),
                           icon: const Icon(Icons.stop_circle_outlined),
                           label: const Text('Stop sharing now'),
@@ -77,7 +79,7 @@ class _LocationScreenState extends ConsumerState<LocationScreen> {
                           spacing: 8,
                           children: [
                             for (final minutes in [15, 60, 480])
-                              FilledButton.tonal(
+                              ExpressiveButton.tonal(
                                 onPressed: live.starting
                                     ? null
                                     : () => live.start(

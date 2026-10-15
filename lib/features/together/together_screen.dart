@@ -1,3 +1,5 @@
+import '../../core/design.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -59,9 +61,9 @@ class TogetherScreen extends ConsumerWidget {
     if (when == null || !context.mounted) return;
     final body = await askText(context, 'Your letter', lines: 6, max: 8000);
     if (body == null || !context.mounted) return;
-    final locked = await showDialog<bool>(
+    final locked = await showGlassDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => GlassDialog(
         title: const Text('Save it for a date?'),
         content: const Text(
           'You can lock the letter until a future date, or let your partner open it whenever they need it.',
@@ -71,7 +73,7 @@ class TogetherScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(c, false),
             child: const Text('Anytime'),
           ),
-          FilledButton(
+          ExpressiveButton(
             onPressed: () => Navigator.pop(c, true),
             child: const Text('Choose a date'),
           ),
@@ -104,7 +106,7 @@ class TogetherScreen extends ConsumerWidget {
     final space = ref.watch(spaceProvider);
     final table = kind == 'collections' ? 'memory_collections' : kind;
     return Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         title: Text(
           kind == 'letters'
               ? 'Open when… letters'
@@ -139,7 +141,7 @@ class TogetherScreen extends ConsumerWidget {
               .where((r) => r['author_id'] != space.session.userId)
               .fold<double>(0, (v, r) => v + (r['amount'] as num).toDouble());
           final balance = (paidMe - paidPartner) / 2;
-          return RefreshIndicator(
+          return UsRefresh(
             onRefresh: space.refresh,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
@@ -214,9 +216,9 @@ class TogetherScreen extends ConsumerWidget {
                                     .eq('id', r['id'] as String)
                                     .maybeSingle();
                                 if (!context.mounted) return;
-                                await showDialog<void>(
+                                await showGlassDialog<void>(
                                   context: context,
-                                  builder: (c) => AlertDialog(
+                                  builder: (c) => GlassDialog(
                                     title: Text(r['title'] as String),
                                     content: SingleChildScrollView(
                                       child: SelectableText(
@@ -240,9 +242,9 @@ class TogetherScreen extends ConsumerWidget {
                                 tooltip: 'Delete',
                                 icon: const Icon(Icons.delete_outline),
                                 onPressed: () async {
-                                  final yes = await showDialog<bool>(
+                                  final yes = await showGlassDialog<bool>(
                                     context: context,
-                                    builder: (c) => AlertDialog(
+                                    builder: (c) => GlassDialog(
                                       title: const Text('Delete this item?'),
                                       actions: [
                                         TextButton(
@@ -250,7 +252,7 @@ class TogetherScreen extends ConsumerWidget {
                                               Navigator.pop(c, false),
                                           child: const Text('Keep'),
                                         ),
-                                        FilledButton(
+                                        ExpressiveButton(
                                           onPressed: () =>
                                               Navigator.pop(c, true),
                                           child: const Text('Delete'),

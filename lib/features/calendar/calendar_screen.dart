@@ -15,7 +15,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   DateTime? _selected;
   Future<void> _date(UsSpace space) async {
-    final value = await showModalBottomSheet<Map<String, dynamic>>(
+    final value = await showGlassBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       builder: (context) => const DateEditor(),
@@ -34,16 +34,16 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     if (title == null || !mounted) return;
     final date = await pickDateTime(context, time: false);
     if (date == null || !mounted) return;
-    final yearly = await showDialog<bool>(
+    final yearly = await showGlassDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => GlassDialog(
         title: const Text('Repeat every year?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
             child: const Text('One time'),
           ),
-          FilledButton(
+          ExpressiveButton(
             onPressed: () => Navigator.pop(c, true),
             child: const Text('Every year'),
           ),
@@ -92,7 +92,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
+                  child: ExpressiveButton.icon(
                     onPressed: () => _date(space),
                     icon: const Icon(Icons.add),
                     label: const Text('Plan a date'),
@@ -351,12 +351,7 @@ class _DateEditorState extends State<DateEditor> {
   @override
   Widget build(BuildContext context) => SafeArea(
     child: Padding(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        MediaQuery.viewInsetsOf(context).bottom + 24,
-      ),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, 24),
       child: SingleChildScrollView(
         child: Form(
           key: _form,
@@ -404,7 +399,7 @@ class _DateEditorState extends State<DateEditor> {
                 decoration: const InputDecoration(labelText: 'Notes'),
               ),
               const SizedBox(height: 16),
-              FilledButton(
+              ExpressiveButton(
                 onPressed: () {
                   if (_form.currentState!.validate())
                     Navigator.pop(context, {

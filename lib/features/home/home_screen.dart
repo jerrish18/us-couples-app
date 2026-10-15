@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -146,143 +147,252 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 a['created_at'] as String,
               ),
             );
-        return RefreshIndicator(
+        final dark = Theme.of(context).brightness == Brightness.dark;
+        final type = Theme.of(context).textTheme;
+        return UsRefresh(
           onRefresh: space.refresh,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: UsTokens.page,
             children: [
-              const PageHeading(
-                'Just us.',
-                'Your little world, a little closer.',
-              ),
-              if (!space.online)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'Offline · Your chat will sync when you reconnect.',
+              PageEntrance(
+                child: PageHeading(
+                  'Good to be\nwith you.',
+                  'A little space for a love like yours.',
+                  trailing: const FlowerBadge(
+                    icon: Icons.wb_sunny_rounded,
+                    accent: Accent.yellow,
                   ),
                 ),
-              if (space.loading) const LinearProgressIndicator(),
-              StoryPanel(
-                child: Padding(
-                  padding: const EdgeInsets.all(26),
-                  child: Column(
+              ),
+              if (!space.online)
+                const StateBanner(
+                  icon: Icons.cloud_off_rounded,
+                  message: 'Offline · Your chat sends when you reconnect.',
+                  accent: Accent.yellow,
+                ),
+              if (space.loading)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: UsTokens.s16),
+                  child: ShimmerBox(),
+                ),
+              PageEntrance(
+                index: 1,
+                child: TintedTile(
+                  accent: Accent.yellow,
+                  child: Row(
                     children: [
-                      const Icon(Icons.favorite_rounded, size: 36),
-                      const SizedBox(height: 12),
-                      Text(
-                        days?.toString() ?? 'Our story',
-                        style: Theme.of(context).textTheme.displayLarge,
-                      ),
-                      Text(
-                        days == null
-                            ? 'Set your together-since date in More'
-                            : 'days together',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (days != null &&
-                          [
-                            100,
-                            365,
-                            730,
-                            1000,
-                            1095,
-                            1825,
-                            3650,
-                          ].where((v) => v > days).isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Text(
-                            '${[100, 365, 730, 1000, 1095, 1825, 3650].firstWhere((v) => v > days) - days} days to your next milestone',
-                          ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const AccentChip(
+                              label: 'OUR STORY',
+                              accent: Accent.yellow,
+                              icon: Icons.favorite_rounded,
+                            ),
+                            const SizedBox(height: UsTokens.s16),
+                            if (days != null)
+                              AnimatedCounter(value: days)
+                            else
+                              Text('Just us.', style: type.displaySmall),
+                            Text(
+                              days == null
+                                  ? 'Set your together-since date in More'
+                                  : 'days of choosing each other',
+                              style: type.bodyLarge,
+                            ),
+                          ],
                         ),
+                      ),
+                      const SizedBox(width: UsTokens.s12),
+                      ProgressRing(
+                        value: days == null ? 0 : (days % 365) / 365,
+                        size: UsTokens.s88,
+                        child: const FlowerBadge(
+                          icon: Icons.favorite_rounded,
+                          accent: Accent.coral,
+                          size: UsTokens.s64,
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              if (space.session.partnerId == null)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(22),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Invite your person',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 12),
-                        FutureBuilder<String?>(
-                          future: space.session.invite(),
-                          builder: (context, snapshot) => SelectableText(
-                            snapshot.data ?? '…',
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'They sign in, choose Join my person, and enter this code.',
-                        ),
-                        TextButton(
-                          onPressed: space.session.refresh,
-                          child: const Text('Check for my person'),
-                        ),
-                      ],
+              const SizedBox(height: UsTokens.s16),
+              CelebrationBurst(
+                active: _heart,
+                child: ExpressiveButton.icon(
+                  onPressed: _missBusy ? null : () => _miss(space),
+                  icon: AnimatedSwitcher(
+                    duration: usMotion(context),
+                    child: Icon(
+                      _heart
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      key: ValueKey(_heart),
                     ),
                   ),
-                ),
-              Semantics(
-                button: true,
-                label: 'Send Miss Me to your partner',
-                child: AnimatedScale(
-                  scale: _heart ? 1.025 : 1,
-                  duration: usMotion(context, 220),
-                  child: FilledButton(
-                    onPressed: _missBusy ? null : () => _miss(space),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.all(26),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _heart ? Icons.favorite : Icons.favorite_outline,
-                          size: 34,
+                  label: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _missBusy ? 'Sending love…' : 'Miss Me',
+                        style: type.titleLarge?.copyWith(
+                          color: dark ? UsColors.ink : UsColors.white,
                         ),
-                        const SizedBox(width: 14),
-                        Text(
-                          _missBusy ? 'Sending love…' : 'Miss Me',
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const Icon(Icons.arrow_outward_rounded),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
+              const SizedBox(height: UsTokens.s24),
+              if (space.session.partnerId == null)
+                GlassCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'A note from $name',
-                        style: Theme.of(context).textTheme.titleMedium,
+                      Text('One little invite.', style: type.headlineSmall),
+                      const SizedBox(height: UsTokens.s12),
+                      FutureBuilder<String?>(
+                        future: space.session.invite(),
+                        builder: (context, snapshot) => SelectableText(
+                          snapshot.data ?? '…',
+                          style: type.headlineLarge,
+                        ),
                       ),
-                      const SizedBox(height: 14),
+                      const Text(
+                        'Your person signs in, chooses Join my person, and enters this code.',
+                      ),
+                      TextButton(
+                        onPressed: space.session.refresh,
+                        child: const Text('Check for my person'),
+                      ),
+                    ],
+                  ),
+                ),
+              PageEntrance(
+                index: 2,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final partner = TintedTile(
+                      accent: Accent.green,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const FlowerBadge(
+                            icon: Icons.public_rounded,
+                            accent: Accent.green,
+                          ),
+                          const SizedBox(height: UsTokens.s16),
+                          Text(name, style: type.titleLarge),
+                          Text(
+                            '${partnerNow.hour.toString().padLeft(2, '0')}:${partnerNow.minute.toString().padLeft(2, '0')}',
+                            style: type.headlineLarge,
+                          ),
+                          Text(
+                            space.partner?['city'] as String? ??
+                                'Their local time',
+                            style: type.bodyMedium,
+                          ),
+                          const SizedBox(height: UsTokens.s16),
+                          Text('$partnerMood', style: type.titleMedium),
+                        ],
+                      ),
+                    );
+                    final plans = Column(
+                      children: [
+                        TintedTile(
+                          accent: Accent.coral,
+                          onTap: () => context.go('/calendar'),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.calendar_month_rounded,
+                                size: UsTokens.s32,
+                              ),
+                              const SizedBox(height: UsTokens.s12),
+                              Text('Time for us', style: type.titleLarge),
+                              const SizedBox(height: UsTokens.s8),
+                              const Text('Plan a little date ↗'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: UsTokens.s12),
+                        TintedTile(
+                          accent: Accent.blue,
+                          onTap: () => context.go('/chat'),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.chat_bubble_rounded),
+                              const SizedBox(width: UsTokens.s12),
+                              Expanded(
+                                child: Text(
+                                  'Say hello',
+                                  style: type.titleMedium,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                    if (constraints.maxWidth < 340 ||
+                        MediaQuery.textScalerOf(context).scale(1) > 1.3)
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          partner,
+                          const SizedBox(height: UsTokens.s12),
+                          plans,
+                        ],
+                      );
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: partner),
+                        const SizedBox(width: UsTokens.s12),
+                        Expanded(child: plans),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: UsTokens.s24),
+              PageEntrance(
+                index: 3,
+                child: TintedTile(
+                  accent: Accent.pink,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.format_quote_rounded),
+                          const SizedBox(width: UsTokens.s12),
+                          Expanded(
+                            child: Text(
+                              'A note from $name',
+                              style: type.titleMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: UsTokens.s20),
                       Text(
                         notes.isEmpty
                             ? 'Little words can make a big day.'
                             : notes.last['body'] as String,
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        style: type.headlineSmall,
                       ),
+                      const SizedBox(height: UsTokens.s16),
                       Align(
-                        alignment: Alignment.centerRight,
+                        alignment: AlignmentDirectional.centerEnd,
                         child: TextButton.icon(
                           onPressed: () => _note(space),
-                          icon: const Icon(Icons.edit_note),
+                          icon: const Icon(Icons.edit_note_rounded),
                           label: const Text('Write a love note'),
                         ),
                       ),
@@ -290,130 +400,142 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
-              Text(
-                'How does today feel?',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children:
-                    [
-                          'Happy 😊',
-                          'Loved 🥰',
-                          'Calm 🌿',
-                          'Tired 😴',
-                          'Low 💙',
-                          'Busy ☕',
-                        ]
-                        .map(
-                          (m) => ChoiceChip(
-                            label: Text(m),
-                            selected:
-                                space.me?['mood'] == m &&
-                                space.me?['mood_date'] == today,
-                            onSelected: (_) => safely(
-                              context,
-                              () => space.profile({
-                                'mood': m,
-                                'mood_date': today,
-                              }),
-                            ),
-                          ),
-                        )
-                        .toList(),
-              ),
-              const SizedBox(height: 16),
-              Card(
-                child: ListTile(
-                  leading: space.partner?['avatar_path'] == null
-                      ? const Icon(Icons.public)
-                      : ClipOval(
-                          child: SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: PrivatePhoto(
-                              space,
-                              space.partner!['avatar_path'] as String,
-                              height: 44,
-                            ),
+              const SizedBox(height: UsTokens.s24),
+              Text('How are you, really?', style: type.headlineSmall),
+              const SizedBox(height: UsTokens.s12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final mood in [
+                      'Happy 😊',
+                      'Loved 🥰',
+                      'Calm 🌿',
+                      'Tired 😴',
+                      'Low 💙',
+                      'Busy ☕',
+                    ])
+                      Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          end: UsTokens.s8,
+                        ),
+                        child: ChoiceChip(
+                          label: Text(mood),
+                          selected:
+                              space.me?['mood'] == mood &&
+                              space.me?['mood_date'] == today,
+                          onSelected: (_) => safely(
+                            context,
+                            () => space.profile({
+                              'mood': mood,
+                              'mood_date': today,
+                            }),
                           ),
                         ),
-                  title: Text(name),
-                  subtitle: Text(
-                    '${space.partner?['city'] ?? 'Their time'} · ${partnerNow.hour.toString().padLeft(2, '0')}:${partnerNow.minute.toString().padLeft(2, '0')}\nMood: $partnerMood',
-                  ),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: UsTokens.s24),
+              TintedTile(
+                accent: Accent.lavender,
+                onTap: () => context.go('/memories'),
+                child: Row(
+                  children: [
+                    const FlowerBadge(
+                      icon: Icons.photo_library_rounded,
+                      accent: Accent.pink,
+                    ),
+                    const SizedBox(width: UsTokens.s16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Moments worth keeping', style: type.titleLarge),
+                          Text(
+                            '${(space.rows['memories'] ?? []).length} memories, just ours.',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_outward_rounded),
+                  ],
+                ),
+              ),
+              const SizedBox(height: UsTokens.s16),
+              GlassCard(
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.near_me_rounded),
+                  title: const Text('Closer, wherever you are'),
+                  subtitle: const Text('Live location · shared by choice'),
+                  trailing: const Icon(Icons.arrow_outward_rounded),
+                  onTap: () => context.push('/location'),
+                ),
+              ),
               if (DateTime.tryParse(
                     space.partner?['availability_until'] as String? ?? '',
                   )?.isAfter(DateTime.now()) ??
                   false)
                 Card(
                   child: ListTile(
-                    leading: const Icon(Icons.coffee_outlined),
+                    leading: const Icon(Icons.coffee_rounded),
                     title: Text(
                       space.partner?['availability'] as String? ?? '',
                     ),
                     subtitle: Text(
-                      'Your person · until ${displayTime(space.partner?['availability_until'] as String?)}',
+                      'Until ${displayTime(space.partner?['availability_until'] as String?)}',
                     ),
                   ),
                 ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () => context.push('/location'),
-                icon: const Icon(Icons.near_me_outlined),
-                label: const Text('Find each other · Live location'),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/calendar'),
-                      icon: const Icon(Icons.calendar_month),
-                      label: const Text('Plan a date'),
-                    ),
+              if (days != null &&
+                  [100, 365, 730, 1000, 1095, 1825, 3650].any((v) => v > days))
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: UsTokens.s16),
+                  child: AccentChip(
+                    accent: Accent.yellow,
+                    label:
+                        '${[100, 365, 730, 1000, 1095, 1825, 3650].firstWhere((v) => v > days) - days} days to your next milestone',
+                    icon: Icons.auto_awesome_rounded,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/chat'),
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: const Text('Say hello'),
-                    ),
-                  ),
-                ],
-              ),
+                ),
               if (taps.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                Text(
-                  'Little moments of missing',
-                  style: Theme.of(context).textTheme.titleLarge,
+                const SizedBox(height: UsTokens.s24),
+                Text('Little “I miss you”s', style: type.headlineSmall),
+                const SizedBox(height: UsTokens.s12),
+                SizedBox(
+                  height: UsTokens.s128,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: math.min(5, taps.length),
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: UsTokens.s12),
+                    itemBuilder: (context, index) {
+                      final tap = taps[index];
+                      return SizedBox(
+                        width: UsTokens.s240,
+                        child: TintedTile(
+                          accent: Accent.pink,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                tap['sender_id'] == space.session.userId
+                                    ? 'You missed your person'
+                                    : 'Your person missed you',
+                                style: type.titleMedium,
+                              ),
+                              const SizedBox(height: UsTokens.s8),
+                              Text(
+                                '${displayDate(tap['created_at'] as String)} · ${displayTime(tap['created_at'] as String)}',
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                ...taps
-                    .take(5)
-                    .map(
-                      (tap) => ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.favorite,
-                          color: Color(0xffb94d65),
-                        ),
-                        title: Text(
-                          tap['sender_id'] == space.session.userId
-                              ? 'You missed your person'
-                              : 'Your person missed you',
-                        ),
-                        subtitle: Text(
-                          '${displayDate(tap['created_at'] as String)} · ${displayTime(tap['created_at'] as String)}',
-                        ),
-                      ),
-                    ),
               ],
             ],
           ),

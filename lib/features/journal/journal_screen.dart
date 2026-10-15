@@ -1,3 +1,5 @@
+import '../../core/design.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +12,7 @@ class JournalScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final space = ref.watch(spaceProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Our journal')),
+      appBar: GlassAppBar(title: const Text('Our journal')),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.edit_note),
         label: const Text('Write'),

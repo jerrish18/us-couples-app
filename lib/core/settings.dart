@@ -1,3 +1,5 @@
+import 'design.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -138,7 +140,7 @@ class _AppLockGateState extends ConsumerState<AppLockGate>
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 24),
-                    FilledButton(
+                    ExpressiveButton(
                       onPressed: _busy ? null : () => _unlock(false),
                       child: const Text('Unlock with device security'),
                     ),

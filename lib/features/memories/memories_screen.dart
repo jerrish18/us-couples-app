@@ -67,9 +67,9 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
   Future<void> _delete(UsSpace space, Map<String, dynamic> memory) async {
     final id = memory['id'] as String;
     if (_deleting.contains(id)) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showGlassDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => GlassDialog(
         title: const Text('Delete this memory?'),
         content: const Text(
           'This permanently removes the photo, caption, and reactions for both of you.',
@@ -79,7 +79,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
             onPressed: () => Navigator.pop(c, false),
             child: const Text('Keep memory'),
           ),
-          FilledButton(
+          ExpressiveButton(
             onPressed: () => Navigator.pop(c, true),
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(c).colorScheme.error,
@@ -103,7 +103,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
 
   Future<void> _move(UsSpace space, Map<String, dynamic> memory) async {
     final collections = space.rows['memory_collections'] ?? [];
-    final selected = await showModalBottomSheet<String>(
+    final selected = await showGlassBottomSheet<String>(
       context: context,
       builder: (c) => SafeArea(
         child: ListView(
@@ -151,7 +151,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                   a['memory_date'] as String,
                 ),
               );
-        return RefreshIndicator(
+        return UsRefresh(
           onRefresh: space.refresh,
           child: ListView.builder(
             padding: const EdgeInsets.all(20),
@@ -173,7 +173,7 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                         child: const Icon(Icons.auto_awesome_rounded, size: 24),
                       ),
                     ),
-                    FilledButton.icon(
+                    ExpressiveButton.icon(
                       onPressed: () => _add(space),
                       icon: const Icon(Icons.add_photo_alternate_outlined),
                       label: const Text('Keep a memory'),
@@ -227,11 +227,11 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
                         context,
                         () => space.react(m['id'] as String, memory: true),
                       ),
-                      onTap: () => showDialog<void>(
+                      onTap: () => showGlassDialog<void>(
                         context: context,
                         builder: (c) => Dialog.fullscreen(
                           child: Scaffold(
-                            appBar: AppBar(
+                            appBar: GlassAppBar(
                               title: const Text('A little moment'),
                             ),
                             body: Center(

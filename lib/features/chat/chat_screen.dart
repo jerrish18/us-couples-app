@@ -1,3 +1,5 @@
+import '../../core/design.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -135,9 +137,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         _recordLimit?.cancel();
         if (mounted) setState(() => _recording = false);
         if (path == null || !mounted) return;
-        final send = await showDialog<bool>(
+        final send = await showGlassDialog<bool>(
           context: context,
-          builder: (c) => AlertDialog(
+          builder: (c) => GlassDialog(
             title: const Text('Your voice, a little closer'),
             content: VoiceBubble(space: space, message: {'_local_file': path}),
             actions: [
@@ -145,7 +147,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 onPressed: () => Navigator.pop(c, false),
                 child: const Text('Discard'),
               ),
-              FilledButton(
+              ExpressiveButton(
                 onPressed: () => Navigator.pop(c, true),
                 child: const Text('Send'),
               ),
@@ -368,7 +370,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           s['user_id'] == space.session.userId &&
           s['starred'] == true,
     );
-    await showModalBottomSheet<void>(
+    await showGlassBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheet) => SafeArea(
@@ -478,9 +480,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     title: const Text('Delete for everyone'),
                     onTap: () async {
                       Navigator.pop(sheet);
-                      final yes = await showDialog<bool>(
+                      final yes = await showGlassDialog<bool>(
                         context: context,
-                        builder: (c) => AlertDialog(
+                        builder: (c) => GlassDialog(
                           title: const Text('Delete for both of you?'),
                           content: const Text(
                             'This replaces the message with a deletion notice. Your partner may already have saved a copy.',
@@ -490,7 +492,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                               onPressed: () => Navigator.pop(c, false),
                               child: const Text('Cancel'),
                             ),
-                            FilledButton(
+                            ExpressiveButton(
                               onPressed: () => Navigator.pop(c, true),
                               child: const Text('Delete'),
                             ),
@@ -701,7 +703,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       if (v == 'poll') _poll(space);
                       if (v == 'sync') space.sync();
                       if (v == 'polls')
-                        showModalBottomSheet<void>(
+                        showGlassBottomSheet<void>(
                           context: context,
                           isScrollControlled: true,
                           builder: (c) => SafeArea(
@@ -907,27 +909,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 m['id'] as String,
                                               ),
                                             ),
-                                      child: Container(
-                                        padding: const EdgeInsets.all(13),
-                                        decoration: BoxDecoration(
-                                          color: mine
-                                              ? colors.primaryContainer
-                                              : colors.surfaceContainerLow,
-                                          border: Border.all(
-                                            color: colors.outlineVariant
-                                                .withValues(alpha: .35),
-                                          ),
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: const Radius.circular(22),
-                                            topRight: const Radius.circular(22),
-                                            bottomLeft: Radius.circular(
-                                              mine ? 22 : 6,
-                                            ),
-                                            bottomRight: Radius.circular(
-                                              mine ? 6 : 22,
-                                            ),
-                                          ),
-                                        ),
+                                      child: MessageSurface(
+                                        mine: mine,
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
@@ -963,11 +946,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                             if (!deleted &&
                                                 m['media_kind'] == 'photo')
                                               GestureDetector(
-                                                onTap: () => showDialog<void>(
+                                                onTap: () => showGlassDialog<void>(
                                                   context: context,
                                                   builder: (c) => Dialog.fullscreen(
                                                     child: Scaffold(
-                                                      appBar: AppBar(
+                                                      appBar: GlassAppBar(
                                                         title: const Text(
                                                           'Your photo',
                                                         ),
@@ -1211,82 +1194,87 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    PopupMenuButton<String>(
-                      tooltip: 'Add attachment',
-                      enabled: !_sending && !_recording,
-                      icon: const Icon(Icons.add_circle_outline),
-                      onSelected: (v) {
-                        if (v == 'photo')
-                          safely(context, () async {
-                            final path = await pickPhoto(
-                              coupleId: space.session.coupleId!,
-                            );
-                            if (path != null)
-                              await _send(space, file: path, kind: 'photo');
-                          });
-                        if (v == 'file')
-                          safely(context, () => _document(space));
-                        if (v == 'poll') _poll(space);
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'photo', child: Text('Photo')),
-                        PopupMenuItem(
-                          value: 'file',
-                          child: Text('Document · up to 5 MB'),
-                        ),
-                        PopupMenuItem(value: 'poll', child: Text('Poll')),
-                      ],
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _text,
-                        focusNode: _focus,
-                        minLines: 1,
-                        maxLines: 4,
-                        maxLength: 8000,
-                        textCapitalization: TextCapitalization.sentences,
-                        buildCounter: (
-                          _, {
-                          required currentLength,
-                          required isFocused,
-                          maxLength,
-                        }) => null,
-                        onChanged: (_) {
-                          _typingDebounce?.cancel();
-                          _typingDebounce = Timer(
-                            const Duration(milliseconds: 200),
-                            () => space.typing(_text.text.isNotEmpty),
-                          );
+                child: GlassCard(
+                  blur: true,
+                  radius: UsTokens.s36,
+                  padding: const EdgeInsets.all(UsTokens.s4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      PopupMenuButton<String>(
+                        tooltip: 'Add attachment',
+                        enabled: !_sending && !_recording,
+                        icon: const Icon(Icons.add_circle_outline),
+                        onSelected: (v) {
+                          if (v == 'photo')
+                            safely(context, () async {
+                              final path = await pickPhoto(
+                                coupleId: space.session.coupleId!,
+                              );
+                              if (path != null)
+                                await _send(space, file: path, kind: 'photo');
+                            });
+                          if (v == 'file')
+                            safely(context, () => _document(space));
+                          if (v == 'poll') _poll(space);
                         },
-                        decoration: const InputDecoration(
-                          hintText: 'A little hello…',
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 13,
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'photo', child: Text('Photo')),
+                          PopupMenuItem(
+                            value: 'file',
+                            child: Text('Document · up to 5 MB'),
+                          ),
+                          PopupMenuItem(value: 'poll', child: Text('Poll')),
+                        ],
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _text,
+                          focusNode: _focus,
+                          minLines: 1,
+                          maxLines: 4,
+                          maxLength: 8000,
+                          textCapitalization: TextCapitalization.sentences,
+                          buildCounter: (
+                            _, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
+                          onChanged: (_) {
+                            _typingDebounce?.cancel();
+                            _typingDebounce = Timer(
+                              const Duration(milliseconds: 200),
+                              () => space.typing(_text.text.isNotEmpty),
+                            );
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'A little hello…',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 13,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      tooltip: _recording
-                          ? 'Stop and preview'
-                          : 'Record voice note',
-                      onPressed: _sending ? null : () => _voice(space),
-                      icon: Icon(
-                        _recording ? Icons.stop_circle : Icons.mic_none,
+                      IconButton(
+                        tooltip: _recording
+                            ? 'Stop and preview'
+                            : 'Record voice note',
+                        onPressed: _sending ? null : () => _voice(space),
+                        icon: Icon(
+                          _recording ? Icons.stop_circle : Icons.mic_none,
+                        ),
                       ),
-                    ),
-                    IconButton.filled(
-                      tooltip: 'Send message',
-                      onPressed: _sending || _recording
-                          ? null
-                          : () => _send(space),
-                      icon: const Icon(Icons.arrow_upward_rounded),
-                    ),
-                  ],
+                      IconButton.filled(
+                        tooltip: 'Send message',
+                        onPressed: _sending || _recording
+                            ? null
+                            : () => _send(space),
+                        icon: const Icon(Icons.arrow_upward_rounded),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -111,7 +111,7 @@ class _MemoryComposerState extends State<MemoryComposer> {
   Widget build(BuildContext context) => PopScope(
     canPop: !_busy,
     child: Scaffold(
-      appBar: AppBar(
+      appBar: GlassAppBar(
         title: const Text('Keep a memory'),
         leading: IconButton(
           tooltip: 'Cancel',
@@ -224,7 +224,7 @@ class _MemoryComposerState extends State<MemoryComposer> {
                 ),
               ),
             const SizedBox(height: 24),
-            FilledButton.icon(
+            ExpressiveButton.icon(
               key: const Key('save-memory'),
               onPressed: _busy ? null : _save,
               icon: _busy

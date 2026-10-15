@@ -16,6 +16,7 @@ import 'features/together/together_screen.dart';
 import 'core/session.dart';
 import 'core/theme.dart';
 import 'core/design.dart';
+import 'core/feature_header.dart';
 import 'core/settings.dart';
 import 'core/space.dart';
 import 'core/notifications.dart';
@@ -31,6 +32,7 @@ import 'features/pairing/pair_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await VisualCapabilities.initialize();
   var stage = 'Firebase';
   try {
     await Firebase.initializeApp(options: firebaseOptions);
@@ -158,30 +160,45 @@ class _UsAppState extends ConsumerState<UsApp> {
         ),
         GoRoute(
           path: '/location',
-          builder: (_, state) => const AppLockGate(child: LocationScreen()),
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.blue,
+            child: AppLockGate(child: LocationScreen()),
+          ),
         ),
         GoRoute(
           path: '/letters',
-          builder: (_, state) =>
-              const AppLockGate(child: TogetherScreen(kind: 'letters')),
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.pink,
+            child: AppLockGate(child: TogetherScreen(kind: 'letters')),
+          ),
         ),
         GoRoute(
           path: '/expenses',
-          builder: (_, state) =>
-              const AppLockGate(child: TogetherScreen(kind: 'expenses')),
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.green,
+            child: AppLockGate(child: TogetherScreen(kind: 'expenses')),
+          ),
         ),
         GoRoute(
           path: '/collections',
-          builder: (_, state) =>
-              const AppLockGate(child: TogetherScreen(kind: 'collections')),
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.coral,
+            child: AppLockGate(child: TogetherScreen(kind: 'collections')),
+          ),
         ),
         GoRoute(
           path: '/lists',
-          builder: (_, state) => const AppLockGate(child: ListsScreen()),
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.green,
+            child: AppLockGate(child: ListsScreen()),
+          ),
         ),
         GoRoute(
           path: '/journal',
-          builder: (_, state) => const AppLockGate(child: JournalScreen()),
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.lavender,
+            child: AppLockGate(child: JournalScreen()),
+          ),
         ),
       ],
     );
@@ -219,6 +236,8 @@ class _UsAppState extends ConsumerState<UsApp> {
         darkTheme: usTheme(Brightness.dark),
         themeMode: settings.theme,
         routerConfig: _router,
+        builder: (context, child) =>
+            AmbientMesh(child: child ?? const SizedBox.shrink()),
       ),
     );
   }
@@ -236,7 +255,18 @@ class UsShell extends ConsumerWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([space, live]),
       builder: (context, _) => Scaffold(
-        appBar: AppBar(
+        extendBody: true,
+        appBar: GlassAppBar(
+          blur: path != '/chat',
+          leading: IconButton(
+            tooltip: 'Profile and settings',
+            onPressed: () => context.go('/more'),
+            icon: const FlowerBadge(
+              icon: Icons.person_rounded,
+              accent: Accent.lavender,
+              size: UsTokens.s40,
+            ),
+          ),
           title: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -255,6 +285,16 @@ class UsShell extends ConsumerWidget {
             ],
           ),
           actions: [
+            IconButton(
+              tooltip: 'Find a feature',
+              icon: const Icon(Icons.search_rounded),
+              onPressed: () => showFeatureSearch(context),
+            ),
+            IconButton(
+              tooltip: 'Dates and reminders',
+              icon: const Icon(Icons.notifications_none_rounded),
+              onPressed: () => showPlansOverview(context, space),
+            ),
             if (space.syncing)
               const Padding(
                 padding: EdgeInsets.all(18),
@@ -283,7 +323,23 @@ class UsShell extends ConsumerWidget {
                 ),
               ),
             Expanded(
-              child: PageEntrance(key: ValueKey(path), child: child),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom > 0
+                      ? 0
+                      : UsTokens.s96,
+                ),
+                child: FeatureScope(
+                  accent: const [
+                    Accent.yellow,
+                    Accent.blue,
+                    Accent.coral,
+                    Accent.pink,
+                    Accent.lavender,
+                  ][paths.indexOf(path).clamp(0, 4)],
+                  child: PageEntrance(key: ValueKey(path), child: child),
+                ),
+              ),
             ),
           ],
         ),

@@ -227,7 +227,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       child: Text(_message!),
                     ),
                   const SizedBox(height: 24),
-                  FilledButton(
+                  ExpressiveButton(
                     onPressed: _busy ? null : _submit,
                     child: _busy
                         ? const SizedBox(

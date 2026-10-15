@@ -1,3 +1,5 @@
+import 'design.dart';
+
 import 'package:flutter/material.dart';
 
 import 'dart:io';
@@ -30,9 +32,9 @@ Future<String?> askText(
   bool obscure = false,
 }) async {
   final controller = TextEditingController(text: initial);
-  final result = await showDialog<String>(
+  final result = await showGlassDialog<String>(
     context: context,
-    builder: (context) => AlertDialog(
+    builder: (context) => GlassDialog(
       title: Text(title),
       content: TextField(
         controller: controller,
@@ -51,7 +53,7 @@ Future<String?> askText(
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
-        FilledButton(
+        ExpressiveButton(
           onPressed: () {
             final text = controller.text.trim();
             if (text.isNotEmpty) Navigator.pop(context, text);

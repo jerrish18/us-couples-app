@@ -43,7 +43,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
   Future<void> _timezone(UsSpace space) async {
     final controller = TextEditingController();
     String query = '';
-    final result = await showModalBottomSheet<String>(
+    final result = await showGlassBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       builder: (c) => StatefulBuilder(
@@ -114,9 +114,9 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
   }
 
   Future<void> _delete(UsSpace space) async {
-    final yes = await showDialog<bool>(
+    final yes = await showGlassDialog<bool>(
       context: context,
-      builder: (c) => AlertDialog(
+      builder: (c) => GlassDialog(
         title: const Text('Delete our space?'),
         content: const Text(
           'This permanently removes both people’s shared messages, memories, lists, dates, journal entries, and uploaded files. Your sign-in accounts remain. Export a backup first if you want to keep your story.',
@@ -126,7 +126,7 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             onPressed: () => Navigator.pop(c, false),
             child: const Text('Keep our space'),
           ),
-          FilledButton(
+          ExpressiveButton(
             onPressed: () => Navigator.pop(c, true),
             child: const Text('Delete all space data'),
           ),

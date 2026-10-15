@@ -1,160 +1,380 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+/// Presentation capabilities only. No account, database or preference changes.
+class VisualCapabilities {
+  static int sdk = 24;
+  static Color? seed;
+  static Future<void> initialize() async {
+    try {
+      final values = await const MethodChannel('us/presentation')
+          .invokeMapMethod<String, dynamic>('capabilities');
+      sdk = values?['sdk'] as int? ?? 24;
+      final value = values?['seed'] as int?;
+      if (value != null) seed = Color(value);
+    } on PlatformException {
+      /* Use the bundled palette. */
+    } catch (_) {
+      /* Tests and older platforms use the graceful fallback. */
+    }
+  }
+}
+
+enum Accent { yellow, green, pink, blue, lavender, coral }
+
+abstract final class UsColors {
+  static const ink = Color(0xff202539),
+      night = Color(0xff151d30),
+      paper = Color(0xfff8f6f0);
+  static const white = Color(0xffffffff),
+      clear = Color(0x00000000),
+      danger = Color(0xffba3547);
+  static const yellow = Color(0xffffdf85),
+      green = Color(0xffc7ebca),
+      pink = Color(0xffffcbdc),
+      blue = Color(0xffc5e8ff),
+      lavender = Color(0xffdbd0ff),
+      coral = Color(0xffffc6b7);
+  static const yellowInk = Color(0xff66501a),
+      greenInk = Color(0xff285b3b),
+      pinkInk = Color(0xff873d5c),
+      blueInk = Color(0xff285878),
+      lavenderInk = Color(0xff584184),
+      coralInk = Color(0xff8a493a);
+  static Color tint(Accent accent, bool dark) =>
+      (dark ? _deep : _light)[accent.index];
+  static Color foreground(Accent accent, bool dark) =>
+      dark ? _light[accent.index] : _strong[accent.index];
+  static const _light = [yellow, green, pink, blue, lavender, coral];
+  static const _strong = [
+    yellowInk,
+    greenInk,
+    pinkInk,
+    blueInk,
+    lavenderInk,
+    coralInk,
+  ];
+  static const _deep = [
+    Color(0xff3f3624),
+    Color(0xff243d35),
+    Color(0xff432d42),
+    Color(0xff233b52),
+    Color(0xff34304d),
+    Color(0xff49332f),
+  ];
+}
+
+/// All geometry, typography and motion values live here, on a 4dp spacing grid.
+abstract final class UsTokens {
+  static const s0 = 0.0,
+      s4 = 4.0,
+      s8 = 8.0,
+      s12 = 12.0,
+      s16 = 16.0,
+      s20 = 20.0,
+      s24 = 24.0,
+      s28 = 28.0,
+      s32 = 32.0,
+      s36 = 36.0,
+      s40 = 40.0,
+      s44 = 44.0,
+      s48 = 48.0,
+      s52 = 52.0,
+      s56 = 56.0,
+      s60 = 60.0,
+      s64 = 64.0,
+      s68 = 68.0,
+      s72 = 72.0,
+      s80 = 80.0,
+      s88 = 88.0,
+      s96 = 96.0,
+      s104 = 104.0,
+      s112 = 112.0,
+      s120 = 120.0,
+      s128 = 128.0,
+      s144 = 144.0,
+      s152 = 152.0,
+      s160 = 160.0,
+      s176 = 176.0,
+      s180 = 180.0,
+      s192 = 192.0,
+      s200 = 200.0,
+      s208 = 208.0,
+      s220 = 220.0,
+      s224 = 224.0,
+      s240 = 240.0,
+      s256 = 256.0,
+      s264 = 264.0,
+      s280 = 280.0,
+      s300 = 300.0,
+      s320 = 320.0,
+      s336 = 336.0,
+      s360 = 360.0,
+      s400 = 400.0,
+      s440 = 440.0,
+      s480 = 480.0;
+  static const card = 32.0,
+      pill = 999.0,
+      blur = 24.0,
+      border = 1.0,
+      shadow = 28.0,
+      photoDecode = 1080;
+  static const fast = 180, interaction = 320, entrance = 480, stagger = 45;
+  static const page = EdgeInsetsDirectional.fromSTEB(s20, s16, s20, s32);
+  static const gap = SizedBox(height: s16);
+}
+
+@immutable
+class FeatureStyle extends ThemeExtension<FeatureStyle> {
+  const FeatureStyle(this.accent);
+  final Accent accent;
+  static Accent of(BuildContext context) =>
+      Theme.of(context).extension<FeatureStyle>()?.accent ?? Accent.lavender;
+  @override
+  FeatureStyle copyWith({Accent? accent}) =>
+      FeatureStyle(accent ?? this.accent);
+  @override
+  FeatureStyle lerp(covariant FeatureStyle? other, double t) =>
+      t < .5 ? this : other ?? this;
+}
+
+class FeatureScope extends StatelessWidget {
+  const FeatureScope({super.key, required this.accent, required this.child});
+  final Accent accent;
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context), dark = theme.brightness == Brightness.dark;
+    return Theme(
+      data: theme.copyWith(
+        colorScheme: theme.colorScheme.copyWith(
+          primary: UsColors.foreground(accent, dark),
+          primaryContainer: UsColors.tint(accent, dark),
+          onPrimary: dark ? UsColors.ink : UsColors.white,
+          onPrimaryContainer: dark ? UsColors.white : UsColors.ink,
+        ),
+        extensions: [FeatureStyle(accent)],
+      ),
+      child: child,
+    );
+  }
+}
 
 ThemeData usTheme(Brightness brightness) {
   final dark = brightness == Brightness.dark;
   final colors =
       ColorScheme.fromSeed(
-        seedColor: const Color(0xff7465bd),
+        seedColor: VisualCapabilities.seed ?? UsColors.lavenderInk,
         brightness: brightness,
       ).copyWith(
-        surface: dark ? const Color(0xff111217) : const Color(0xfff6f6fa),
-        surfaceContainerLow: dark ? const Color(0xff1b1d25) : Colors.white,
+        surface: dark ? UsColors.night : UsColors.paper,
+        onSurface: dark ? const Color(0xfff5f4fb) : UsColors.ink,
+        onSurfaceVariant: dark
+            ? const Color(0xffd2d4e4)
+            : const Color(0xff52596a),
+        surfaceContainerLow: dark
+            ? const Color(0xff232d43)
+            : const Color(0xfffcfaf5),
         surfaceContainerHigh: dark
-            ? const Color(0xff252731)
-            : const Color(0xffeeeef5),
-        primary: dark ? const Color(0xffc5b9ff) : const Color(0xff6553a8),
-        primaryContainer: dark
-            ? const Color(0xff403752)
-            : const Color(0xffe9e1fa),
-        onPrimaryContainer: dark
-            ? const Color(0xffeee6ff)
-            : const Color(0xff3e315e),
+            ? const Color(0xff30394f)
+            : const Color(0xffedeaf4),
+        error: dark ? const Color(0xffffb3bd) : UsColors.danger,
       );
-  final shape = RoundedRectangleBorder(
-    borderRadius: BorderRadius.circular(26),
-    side: BorderSide(
-      color: colors.outlineVariant.withValues(alpha: dark ? .35 : .45),
-    ),
-  );
   final base = ThemeData(
     useMaterial3: true,
     brightness: brightness,
     colorScheme: colors,
+    fontFamily: 'Outfit',
+  );
+  final shape = RoundedRectangleBorder(
+    borderRadius: BorderRadius.circular(UsTokens.card),
+    side: BorderSide(color: colors.outlineVariant.withValues(alpha: .35)),
+  );
+  TextStyle type(
+    double size,
+    FontWeight weight, {
+    double height = 1.2,
+    double spacing = 0,
+  }) => TextStyle(
+    fontFamily: 'Outfit',
+    fontSize: size,
+    fontWeight: weight,
+    height: height,
+    letterSpacing: spacing,
+    color: colors.onSurface,
   );
   return base.copyWith(
-    scaffoldBackgroundColor: colors.surface,
+    scaffoldBackgroundColor: UsColors.clear,
+    extensions: [const FeatureStyle(Accent.lavender)],
     textTheme: base.textTheme.copyWith(
-      headlineLarge: TextStyle(
-        fontSize: 32,
-        fontWeight: FontWeight.w800,
-        letterSpacing: -1.1,
-        height: 1.15,
-        color: colors.onSurface,
-      ),
-      headlineSmall: TextStyle(
-        fontSize: 25,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -.7,
-        color: colors.onSurface,
-      ),
-      titleLarge: TextStyle(
-        fontSize: 21,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -.4,
-        color: colors.onSurface,
-      ),
-      titleMedium: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: colors.onSurface,
-      ),
-      displayLarge: TextStyle(
-        fontSize: 76,
-        fontWeight: FontWeight.w300,
-        letterSpacing: -4,
-        color: colors.onSurface,
-      ),
-      bodyLarge: TextStyle(fontSize: 16, height: 1.45, color: colors.onSurface),
+      displayLarge: type(72, FontWeight.w800, spacing: -3),
+      displayMedium: type(56, FontWeight.w800, spacing: -2),
+      displaySmall: type(44, FontWeight.w800, spacing: -1.5),
+      headlineLarge: type(36, FontWeight.w800, spacing: -1.2),
+      headlineMedium: type(28, FontWeight.w800, spacing: -.8),
+      headlineSmall: type(24, FontWeight.w700, spacing: -.5),
+      titleLarge: type(20, FontWeight.w700),
+      titleMedium: type(16, FontWeight.w600),
+      bodyLarge: type(16, FontWeight.w400, height: 1.5),
+      bodyMedium: type(14, FontWeight.w400, height: 1.5),
+      labelLarge: type(14, FontWeight.w700),
+      labelSmall: type(12, FontWeight.w600),
     ),
     appBarTheme: AppBarTheme(
-      backgroundColor: colors.surface,
-      surfaceTintColor: Colors.transparent,
+      backgroundColor: UsColors.clear,
+      surfaceTintColor: UsColors.clear,
       elevation: 0,
       scrolledUnderElevation: 0,
+      toolbarHeight: UsTokens.s64,
       centerTitle: false,
-      toolbarHeight: 58,
-      titleTextStyle: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -.3,
-        color: colors.onSurface,
-      ),
+      titleSpacing: UsTokens.s20,
+      titleTextStyle: type(18, FontWeight.w700),
     ),
     cardTheme: CardThemeData(
       elevation: 0,
-      margin: EdgeInsets.zero,
+      margin: const EdgeInsets.only(bottom: UsTokens.s12),
       shape: shape,
-      color: colors.surfaceContainerLow,
-      surfaceTintColor: Colors.transparent,
+      color: colors.surfaceContainerLow.withValues(alpha: .90),
+      surfaceTintColor: UsColors.clear,
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        backgroundColor: dark ? UsColors.lavender : UsColors.ink,
+        foregroundColor: dark ? UsColors.ink : UsColors.white,
+        minimumSize: const Size(UsTokens.s48, UsTokens.s56),
+        padding: const EdgeInsets.symmetric(
+          horizontal: UsTokens.s24,
+          vertical: UsTokens.s16,
+        ),
+        shape: const StadiumBorder(),
+        textStyle: const TextStyle(
+          fontFamily: 'Outfit',
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(UsTokens.s48, UsTokens.s52),
+        shape: const StadiumBorder(),
+        side: BorderSide(color: colors.outlineVariant),
+        backgroundColor: colors.surface.withValues(alpha: .45),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        minimumSize: const Size(UsTokens.s48, UsTokens.s48),
+        shape: const StadiumBorder(),
+      ),
+    ),
+    iconButtonTheme: IconButtonThemeData(
+      style: IconButton.styleFrom(
+        minimumSize: const Size(UsTokens.s48, UsTokens.s48),
+        padding: const EdgeInsets.all(UsTokens.s12),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: colors.surfaceContainerLow.withValues(alpha: .85),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s24),
+        borderSide: BorderSide(
+          color: colors.outlineVariant.withValues(alpha: .5),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s24),
+        borderSide: BorderSide(
+          color: colors.outlineVariant.withValues(alpha: .5),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s24),
+        borderSide: BorderSide(color: colors.primary, width: 2),
+      ),
+      contentPadding: const EdgeInsets.all(UsTokens.s20),
+    ),
+    chipTheme: base.chipTheme.copyWith(
+      side: BorderSide(color: colors.outlineVariant.withValues(alpha: .35)),
+      backgroundColor: colors.surfaceContainerLow.withValues(alpha: .72),
+      selectedColor: colors.primaryContainer,
+      shape: const StadiumBorder(),
+      labelStyle: type(14, FontWeight.w600),
+      padding: const EdgeInsets.symmetric(
+        horizontal: UsTokens.s12,
+        vertical: UsTokens.s8,
+      ),
     ),
     listTileTheme: ListTileThemeData(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-      iconColor: colors.primary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-    ),
-    bottomSheetTheme: BottomSheetThemeData(
-      showDragHandle: true,
-      backgroundColor: colors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      contentPadding: const EdgeInsetsDirectional.fromSTEB(
+        UsTokens.s20,
+        UsTokens.s8,
+        UsTokens.s16,
+        UsTokens.s8,
       ),
+      iconColor: colors.primary,
+      minVerticalPadding: UsTokens.s12,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s24),
+      ),
+    ),
+    bottomSheetTheme: const BottomSheetThemeData(
+      backgroundColor: UsColors.clear,
+      surfaceTintColor: UsColors.clear,
+      showDragHandle: false,
+      elevation: 0,
     ),
     dialogTheme: DialogThemeData(
       shape: shape,
       backgroundColor: colors.surfaceContainerLow,
     ),
-    chipTheme: base.chipTheme.copyWith(
-      side: BorderSide.none,
-      backgroundColor: colors.surfaceContainerHigh,
-      selectedColor: colors.primaryContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 8),
+    datePickerTheme: DatePickerThemeData(
+      shape: shape,
+      backgroundColor: colors.surfaceContainerLow,
+      headerBackgroundColor: colors.primaryContainer,
     ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: colors.surfaceContainerLow,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(19),
-        borderSide: BorderSide(
-          color: colors.outlineVariant.withValues(alpha: .4),
-        ),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(19),
-        borderSide: BorderSide(
-          color: colors.outlineVariant.withValues(alpha: .4),
-        ),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(19),
-        borderSide: BorderSide(color: colors.primary, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.all(17),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size(48, 54),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(19)),
+    timePickerTheme: TimePickerThemeData(
+      shape: shape,
+      backgroundColor: colors.surfaceContainerLow,
+      hourMinuteShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s24),
       ),
     ),
-    outlinedButtonTheme: OutlinedButtonThemeData(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(48, 50),
-        side: BorderSide(color: colors.outlineVariant),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(19)),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      backgroundColor: colors.primaryContainer,
+      foregroundColor: colors.onPrimaryContainer,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s32),
+      ),
+      extendedPadding: const EdgeInsets.all(UsTokens.s24),
+    ),
+    popupMenuTheme: PopupMenuThemeData(
+      color: colors.surfaceContainerLow.withValues(alpha: .98),
+      surfaceTintColor: UsColors.clear,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(UsTokens.s24),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      shape: shape,
+      backgroundColor: UsColors.ink,
+      contentTextStyle: const TextStyle(
+        fontFamily: 'Outfit',
+        color: UsColors.white,
+        fontSize: 14,
+      ),
     ),
     dividerTheme: DividerThemeData(
-      color: colors.outlineVariant.withValues(alpha: .5),
-      space: 28,
+      color: colors.outlineVariant.withValues(alpha: .35),
+      space: UsTokens.s32,
     ),
     pageTransitionsTheme: const PageTransitionsTheme(
-      builders: {TargetPlatform.android: FadeForwardsPageTransitionsBuilder()},
+      builders: {
+        TargetPlatform.android: PredictiveBackPageTransitionsBuilder(),
+      },
     ),
   );
 }

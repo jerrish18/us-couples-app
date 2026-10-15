@@ -1,3 +1,5 @@
+import '../../core/design.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,7 +18,7 @@ class _ListsScreenState extends ConsumerState<ListsScreen> {
   Widget build(BuildContext context) {
     final space = ref.watch(spaceProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Our lists')),
+      appBar: GlassAppBar(title: const Text('Our lists')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final title = await askText(
