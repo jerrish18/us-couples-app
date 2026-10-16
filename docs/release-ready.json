@@ -1,21 +1,17 @@
 {
   "ready": true,
-  "version": "1.5.0",
-  "validated_source_commit": "b77f92d97432433a164dc3893cdca7aab56af6d8",
-  "validated_run": 38776778230,
-  "flutter_tests": 103,
+  "version": "1.5.1",
+  "validated_source_commit": "0d9fff749c248f5deb1701e23273682b3e77cfcd",
+  "validated_run": 38920981022,
+  "flutter_tests": 110,
   "visual_layout_snapshots": 90,
   "static_analysis": "passed",
   "frozen_backend_service_files": 24,
-  "backend_and_route_scope": "unchanged; SHA-256 and destination guard passed",
-  "new_dependencies": [
-    "flutter_localizations (Flutter SDK)",
-    "Outfit variable font (SIL OFL, bundled)"
-  ],
-  "email_confirmation": "preserved",
+  "scope": "Camera/gallery helper updated explicitly; unrelated frozen services and navigation destinations preserved.",
+  "storage": "MP3 MIME added to existing private couple-media bucket; existing 5 MB limit and access policies preserved.",
   "android_7_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
   "android_15_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
-  "physical_device_checks": "Not performed: successful Google account sign-in, FCM, GPS, pinned launcher widget, vendor background behavior and 60/120 fps performance.",
-  "presentation_limits": "OS-owned prompts remain native; shared photo Hero plus expressive route entrances, not a custom container transform for every card.",
-  "apk_sha256": "71855150acc4f9965d6b25f0e6c5032ef08454ab6c6b606a4824442a9de7528f"
+  "physical_device_checks": "Not performed: native gallery/camera on Pixel 8 and successful two-partner audio/photo transfer/playback. Emulator checks establish startup/upgrade and denial-callback handling only.",
+  "music_limits": "MP3/M4A from phone, up to 5 MB; no streaming catalogue.",
+  "apk_sha256": "124e9817dbb7dca57bb1eda7dac84d7c4921f24a58d5aaf07888f3a691f7a6bd"
 }
