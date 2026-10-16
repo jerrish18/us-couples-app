@@ -10,6 +10,11 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
+import 'package:image_picker/image_picker.dart' show ImagePicker, ImageSource;
+
+import 'attachment_sheet.dart';
+import 'music_dedication.dart';
+
 import 'package:uuid/uuid.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -38,6 +43,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   List<Map<String, dynamic>>? _remoteMatches;
   bool _searchBusy = false;
   StreamSubscription<dynamic>? _shares;
+  bool _choosing = false;
   bool _recording = false,
       _sending = false,
       _searching = false,
@@ -62,6 +68,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (mounted) setState(() => _inbound = List.from(ShareInbox.pending));
     });
     _inbound = List.from(ShareInbox.pending);
+    if (Platform.isAndroid)
+      WidgetsBinding.instance.addPostFrameCallback((_) => _recoverPhoto());
     _text.addListener(() {
       _draftTimer?.cancel();
       _draftTimer = Timer(const Duration(milliseconds: 400), () {
@@ -128,6 +136,170 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   void _notice(String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<void> _attachments(UsSpace space) async {
+    _focus.unfocus();
+    final choice = await showGlassBottomSheet<String>(
+      context: context,
+      builder: (sheet) =>
+          ChatAttachmentSheet(onSelect: (value) => Navigator.pop(sheet, value)),
+    );
+    if (!mounted || choice == null) return;
+    // Let the sheet finish closing before Android launches its picker activity.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    switch (choice) {
+      case 'photo':
+        await _photo(space, ImageSource.gallery);
+      case 'camera':
+        await _photo(space, ImageSource.camera);
+      case 'music':
+        await _music(space);
+      case 'file':
+        await safely(context, () => _document(space));
+      case 'poll':
+        _poll(space);
+    }
+  }
+
+  Future<void> _recoverPhoto() async {
+    try {
+      final result = await ImagePicker().retrieveLostData();
+      if (!mounted) return;
+      if (result.exception != null) {
+        _notice('The photo could not be recovered. Please choose it again.');
+        return;
+      }
+      final picked = result.files?.firstOrNull;
+      if (picked == null) return;
+      final space = ref.read(spaceProvider);
+      final path = await preparePhoto(
+        picked.path,
+        coupleId: space.session.coupleId!,
+      );
+      if (mounted) await _previewPhoto(space, path);
+    } catch (_) {
+      if (mounted)
+        _notice('Could not recover the photo. Please choose it again.');
+    }
+  }
+
+  Future<void> _photo(UsSpace space, ImageSource source) async {
+    if (_choosing || _sending || _recording) return;
+    setState(() => _choosing = true);
+    _focus.unfocus();
+    try {
+      final path = await pickPhoto(
+        coupleId: space.session.coupleId!,
+        source: source,
+      );
+      if (path != null && mounted) await _previewPhoto(space, path);
+    } on PlatformException catch (error) {
+      if (mounted)
+        _notice(
+          error.code.contains('denied')
+              ? 'Photo access was denied. Allow access in Android Settings → Apps → Us → Permissions.'
+              : 'Could not open the camera or photos. Please try again.',
+        );
+    } catch (_) {
+      if (mounted)
+        _notice('Could not prepare this photo. Try a different photo.');
+    } finally {
+      if (mounted) setState(() => _choosing = false);
+    }
+  }
+
+  Future<void> _previewPhoto(UsSpace space, String path) async {
+    final send = await showGlassDialog<bool>(
+      context: context,
+      builder: (c) => GlassDialog(
+        title: const Text('Send this photo?'),
+        content: ClipRRect(
+          borderRadius: BorderRadius.circular(UsTokens.s20),
+          child: Image.file(File(path), height: 280, fit: BoxFit.contain),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Cancel'),
+          ),
+          ExpressiveButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Send photo'),
+          ),
+        ],
+      ),
+    );
+    if (send == true && mounted) {
+      await _send(space, file: path, kind: 'photo');
+    } else {
+      try {
+        await File(path).delete();
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _music(UsSpace space) async {
+    if (_choosing) return;
+    setState(() => _choosing = true);
+    String? copyPath;
+    bool queued = false;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp3', 'm4a'],
+      );
+      if (result == null || !mounted) return;
+      final picked = result.files.single;
+      final path = picked.path;
+      final ext = picked.name.split('.').last.toLowerCase();
+      if (path == null ||
+          !['mp3', 'm4a'].contains(ext) ||
+          picked.size <= 0 ||
+          picked.size > 5242880) {
+        _notice('Choose an MP3 or M4A song up to 5 MB.');
+        return;
+      }
+      final note = await askText(
+        context,
+        'A song for you',
+        hint: 'Why this song reminds me of you…',
+        initial: 'This one is for you ❤️',
+        max: 500,
+        lines: 3,
+      );
+      if (note == null || !mounted) return;
+      final root = await getApplicationSupportDirectory();
+      final folder = await Directory(
+        '${root.path}/us-media/${space.session.coupleId}',
+      ).create(recursive: true);
+      copyPath = '${folder.path}/${const Uuid().v4()}.$ext';
+      await File(path).copy(copyPath);
+      final name = picked.name.length > 180
+          ? picked.name.substring(picked.name.length - 180)
+          : picked.name;
+      await space.send(
+        note,
+        file: copyPath,
+        kind: 'file',
+        fileName: name,
+        mime: ext == 'mp3' ? 'audio/mpeg' : 'audio/mp4',
+        replyTo: _reply?['id'] as String?,
+      );
+      queued = true;
+      if (mounted) setState(() => _reply = null);
+      HapticFeedback.lightImpact();
+    } catch (_) {
+      if (mounted) _notice('Could not dedicate this song. Please try again.');
+    } finally {
+      if (!queued && copyPath != null) {
+        try {
+          await File(copyPath).delete();
+        } catch (_) {}
+      }
+      if (mounted) setState(() => _choosing = false);
+    }
   }
 
   Future<void> _voice(UsSpace space) async {
@@ -1021,7 +1193,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 message: m,
                                               ),
                                             if (!deleted &&
-                                                m['media_kind'] == 'file')
+                                                m['media_kind'] == 'file' &&
+                                                !isMusicDedication(m))
                                               TextButton.icon(
                                                 onPressed: () => safely(context, () async {
                                                   final path =
@@ -1054,12 +1227,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                   '${m['file_name'] ?? 'Document'}\n${((m['file_size'] as num? ?? 0) / 1024).round()} KB · Tap to open or save',
                                                 ),
                                               ),
+                                            if (!deleted &&
+                                                isMusicDedication(m))
+                                              MusicDedicationCard(
+                                                key: ValueKey(
+                                                  'music-${m['id']}',
+                                                ),
+                                                space: space,
+                                                message: m,
+                                              ),
                                             if (text.isNotEmpty)
                                               Text(
                                                 text,
                                                 style: TextStyle(
                                                   fontSize: UsTokens.s16,
-                                                  height: UsTokens.s0,
+                                                  height: 1.4,
                                                   fontStyle: deleted
                                                       ? FontStyle.italic
                                                       : null,
@@ -1219,6 +1401,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
               ),
             SafeArea(
               top: false,
+              bottom: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   UsTokens.s8,
@@ -1233,31 +1416,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      PopupMenuButton<String>(
+                      IconButton(
                         tooltip: 'Add attachment',
-                        enabled: !_sending && !_recording,
+                        onPressed: _sending || _recording || _choosing
+                            ? null
+                            : () => _attachments(space),
                         icon: const Icon(Icons.add_circle_outline),
-                        onSelected: (v) {
-                          if (v == 'photo')
-                            safely(context, () async {
-                              final path = await pickPhoto(
-                                coupleId: space.session.coupleId!,
-                              );
-                              if (path != null)
-                                await _send(space, file: path, kind: 'photo');
-                            });
-                          if (v == 'file')
-                            safely(context, () => _document(space));
-                          if (v == 'poll') _poll(space);
-                        },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'photo', child: Text('Photo')),
-                          PopupMenuItem(
-                            value: 'file',
-                            child: Text('Document · up to 5 MB'),
-                          ),
-                          PopupMenuItem(value: 'poll', child: Text('Poll')),
-                        ],
+                      ),
+                      IconButton(
+                        tooltip: 'Take a photo',
+                        onPressed: _sending || _recording || _choosing
+                            ? null
+                            : () => _photo(space, ImageSource.camera),
+                        icon: const Icon(Icons.camera_alt_outlined),
                       ),
                       Expanded(
                         child: TextField(
@@ -1282,6 +1453,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           },
                           decoration: const InputDecoration(
                             hintText: 'A little hello…',
+                            hintMaxLines: 1,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: UsTokens.s16,
                               vertical: UsTokens.s12,
@@ -1293,14 +1465,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         tooltip: _recording
                             ? 'Stop and preview'
                             : 'Record voice note',
-                        onPressed: _sending ? null : () => _voice(space),
+                        onPressed: _sending || _choosing
+                            ? null
+                            : () => _voice(space),
                         icon: Icon(
                           _recording ? Icons.stop_circle : Icons.mic_none,
                         ),
                       ),
                       IconButton.filled(
                         tooltip: 'Send message',
-                        onPressed: _sending || _recording
+                        onPressed: _sending || _recording || _choosing
                             ? null
                             : () => _send(space),
                         icon: const Icon(Icons.arrow_upward_rounded),

@@ -5,15 +5,25 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
-Future<String?> pickPhoto({required String coupleId}) async {
-  final source = await ImagePicker().pickImage(source: ImageSource.gallery);
-  if (source == null) return null;
+Future<String?> pickPhoto({
+  required String coupleId,
+  ImageSource source = ImageSource.gallery,
+}) async {
+  final picked = await ImagePicker().pickImage(
+    source: source,
+    requestFullMetadata: false,
+  );
+  if (picked == null) return null;
+  return preparePhoto(picked.path, coupleId: coupleId);
+}
+
+Future<String> preparePhoto(String path, {required String coupleId}) async {
   final root = await getApplicationSupportDirectory();
   final folder = await Directory('${root.path}/us-media/$coupleId')
       .create(recursive: true);
   final out = '${folder.path}/${const Uuid().v4()}.jpg';
   final compressed = await FlutterImageCompress.compressAndGetFile(
-    source.path,
+    path,
     out,
     minWidth: 1280,
     minHeight: 1280,

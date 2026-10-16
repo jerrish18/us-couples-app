@@ -1066,22 +1066,28 @@ class UsDock extends StatelessWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                if (i == 2)
-                                  FlowerBadge(
-                                    icon: icons[i],
-                                    accent: Accent.yellow,
-                                    size: UsTokens.s40,
-                                  )
-                                else
-                                  Icon(
-                                    icons[i],
-                                    size: UsTokens.s24,
-                                    color: selected == i
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Theme.of(context)
-                                              .colorScheme
-                                              .onSurfaceVariant,
+                                SizedBox(
+                                  height: UsTokens.s40,
+                                  child: Center(
+                                    child: i == 2
+                                        ? FlowerBadge(
+                                            icon: icons[i],
+                                            accent: Accent.yellow,
+                                            size: UsTokens.s40,
+                                          )
+                                        : Icon(
+                                            icons[i],
+                                            size: UsTokens.s24,
+                                            color: selected == i
+                                                ? Theme.of(context)
+                                                      .colorScheme
+                                                      .primary
+                                                : Theme.of(context)
+                                                      .colorScheme
+                                                      .onSurfaceVariant,
+                                          ),
                                   ),
+                                ),
                                 const SizedBox(height: UsTokens.s4),
                                 FittedBox(
                                   child: Text(
