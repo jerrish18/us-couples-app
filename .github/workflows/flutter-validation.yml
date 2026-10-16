@@ -1,7 +1,7 @@
 name: Flutter validation
 on:
   push:
-    branches: [build/us-v1-5, fix/us-v1-5-1]
+    branches: [build/us-v1-5]
   pull_request:
   workflow_dispatch:
 permissions:

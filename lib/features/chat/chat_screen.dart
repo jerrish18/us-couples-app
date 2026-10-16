@@ -1453,6 +1453,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           },
                           decoration: const InputDecoration(
                             hintText: 'A little hello…',
+                            hintMaxLines: 1,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: UsTokens.s16,
                               vertical: UsTokens.s12,
