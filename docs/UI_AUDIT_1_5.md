@@ -48,3 +48,11 @@ Android owns permission prompts, biometric prompts, photo/file pickers and syste
 - At most two prominent blur layers in main chrome; chat trades the header blur for composer blur. Cards are tinted, not independent full-cost backdrop filters. Overlays suspend underlying route blur.
 - Ambient mesh paints in an isolated layer at a low update rate; reduced motion disables drift, shimmer, particles and entrance movement.
 - Same minimum Android 7, same keystore, universal ARMv7/ARM64 APK.
+
+## Review coverage
+
+The visual harness captures 15 screens in both themes at 393×852, compact 320×740 with 1.4× text and RTL, and 840×960 tablet dimensions: 90 screenshots. Modern Android capability is exercised for real-blur layout; legacy capability is exercised for tinted fallbacks. Fixture photos are synthetic and are not shipped as app assets. The harness checks layout exceptions and six-family AA text contrast. All 103 Flutter checks pass, including auth validation/deep-link parsing, offline database and reminder behavior, collection creation/selection and upload failure retry.
+
+The release gate checks the existing signing certificate, Android 7 minimum, both ARM architectures, installation over the previous release with unchanged application UID, login launch, real Android OAuth denial-intent return, and crash logs on API 24 and API 35. Successful Google account authentication and physical-device FCM/GPS/launcher-widget/performance are not implied by the automated gate.
+
+Not every card has a custom container-transform route. Photo detail uses a shared Hero; other destinations retain their routes with expressive entrance/back transitions. Native date/time dialogs receive the central theme. Android permission, biometric and system picker surfaces keep their OS-owned layouts.

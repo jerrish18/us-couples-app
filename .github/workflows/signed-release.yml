@@ -54,6 +54,9 @@ jobs:
           test -s verification/install-launch.txt
           test -s verification/oauth-callback-ui.xml
           ! grep -q 'FATAL EXCEPTION' verification/crashes.txt
+          test -s verification/android-15/install-launch.txt
+          test -s verification/android-15/oauth-callback-ui.xml
+          ! grep -q 'FATAL EXCEPTION' verification/android-15/crashes.txt
       - name: Preserve release verification
         uses: actions/upload-artifact@v4
         with:
@@ -63,4 +66,4 @@ jobs:
       - name: Publish exact tested APK
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create v1.2.0 release/Us.apk release/Us.apk.sha256 --target "$GITHUB_SHA" --title "Us v1.2.0" --notes-file docs/RELEASE_NOTES.md
+        run: gh release create v1.5.0 release/Us.apk release/Us.apk.sha256 --target "$GITHUB_SHA" --title "Us v1.5.0" --notes-file docs/RELEASE_NOTES.md

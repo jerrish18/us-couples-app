@@ -1,12 +1,21 @@
 {
   "ready": true,
-  "version": "1.2.0",
-  "validated_source_commit": "ff532ad01494fd9528f8a94dc2e4eb672b9a465a",
-  "validated_run": 38762938903,
-  "email_confirmation_required": true,
-  "google_provider_enabled": true,
-  "backend_privacy_and_memory_storage_tests": "passed",
+  "version": "1.5.0",
+  "validated_source_commit": "b77f92d97432433a164dc3893cdca7aab56af6d8",
+  "validated_run": 38776778230,
+  "flutter_tests": 103,
+  "visual_layout_snapshots": 90,
+  "static_analysis": "passed",
+  "frozen_backend_service_files": 24,
+  "backend_and_route_scope": "unchanged; SHA-256 and destination guard passed",
+  "new_dependencies": [
+    "flutter_localizations (Flutter SDK)",
+    "Outfit variable font (SIL OFL, bundled)"
+  ],
+  "email_confirmation": "preserved",
   "android_7_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
-  "physical_device_checks": "Not performed: physical-device frame rate, successful Google account sign-in, FCM, GPS and vendor background behavior remain unverified.",
-  "apk_sha256": "325379290e1e135f21e428aaf6714f7d64c5d10bd40607ced13032b167aa32ee"
+  "android_15_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
+  "physical_device_checks": "Not performed: successful Google account sign-in, FCM, GPS, pinned launcher widget, vendor background behavior and 60/120 fps performance.",
+  "presentation_limits": "OS-owned prompts remain native; shared photo Hero plus expressive route entrances, not a custom container transform for every card.",
+  "apk_sha256": "71855150acc4f9965d6b25f0e6c5032ef08454ab6c6b606a4824442a9de7528f"
 }
