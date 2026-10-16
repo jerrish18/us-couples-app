@@ -283,7 +283,7 @@ class UsShell extends ConsumerWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([space, live]),
       builder: (context, _) => Scaffold(
-        extendBody: true,
+        extendBody: false,
         appBar: GlassAppBar(
           blur: path != '/chat',
           leading: IconButton(
@@ -358,27 +358,20 @@ class UsShell extends ConsumerWidget {
                 ),
               ),
             Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  bottom: MediaQuery.viewInsetsOf(context).bottom > 0
-                      ? 0
-                      : UsTokens.s96,
-                ),
-                child: FeatureScope(
-                  accent: const [
-                    Accent.yellow,
-                    Accent.blue,
-                    Accent.coral,
-                    Accent.pink,
-                    Accent.lavender,
-                  ][paths.indexOf(path).clamp(0, 4)],
-                  child: PageEntrance(
-                    key: ValueKey(path),
-                    child: SpaceBody(
-                      space: space,
-                      table: tables[path],
-                      child: child,
-                    ),
+              child: FeatureScope(
+                accent: const [
+                  Accent.yellow,
+                  Accent.blue,
+                  Accent.coral,
+                  Accent.pink,
+                  Accent.lavender,
+                ][paths.indexOf(path).clamp(0, 4)],
+                child: PageEntrance(
+                  key: ValueKey(path),
+                  child: SpaceBody(
+                    space: space,
+                    table: tables[path],
+                    child: child,
                   ),
                 ),
               ),
