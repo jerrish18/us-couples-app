@@ -52,7 +52,7 @@ jobs:
         with:
           cmdline-tools-version: '15859902'
           log-accepted-android-sdk-licenses: false
-          packages: 'platform-tools emulator platforms;android-37 build-tools;37.0.0'
+          packages: 'platform-tools emulator platforms;android-37.0 build-tools;37.0.0'
       - name: Recheck signature and enable emulator acceleration
         run: |
           mkdir -p build/app/outputs/flutter-apk
@@ -63,7 +63,7 @@ jobs:
         timeout-minutes: 12
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 37
+          api-level: '37.0'
           target: google_apis
           arch: x86_64
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
