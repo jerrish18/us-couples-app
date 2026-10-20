@@ -1,4 +1,4 @@
-# Us 1.6.0 candidate
+# Us 1.6.0
 
 This update adds expense organization, cycle care, video messages, and a WebRTC calling implementation, and refines the existing visual system. It requires the existing v1.5 database plus the new migration. Keep the existing signing key and app installation.
 
@@ -32,7 +32,9 @@ Targets/compiles Android 17 (API 37), retaining minimum API 24. Requests Android
 
 The SQL suite `supabase/tests/us_v1_6.sql` passed against the connected database in a rolled-back transaction: expense ownership, private cycle data, opt-in sharing/revocation, overlap rejection, callee-only answer, ICE visibility, third-account isolation and deletion cascades. Security advisors reported no new table/policy warnings.
 
-Pure Dart checks for grouping, exact paise totals, calendar-day prediction and duplicate history passed. Flutter analysis passed with four legacy informational notices; all 121 Flutter tests passed, including the new narrow-screen forms and existing light/dark/RTL screenshot checks. Generated Android platform/XML preparation passed. Signed Android builds remain pending because public branch publication requires explicit permission after automatic review rejected it. CI is configured for API 24, 35 and 37 installation/launch. Automated checks do not substitute for two-phone camera, Bluetooth, lock-screen/background push, call audio/video and mobile-network relay tests.
+All 121 Flutter tests passed. Analysis reported no errors or warnings, with four existing informational notices. Ninety layout snapshots were generated, and primary light/dark and expense views were reviewed. The signed universal APK compiled successfully, retained the existing signing certificate, and passed in-place update, launch and OAuth-denial callback checks on Android 7 and 15. Its 64-bit native libraries and stored ZIP entries were checked for 16 KB page alignment.
+
+Android 17 testing was skipped at the user's explicit request. Its initial SDK setup failed, and a subsequent emulator failed to boot before installation. Compatibility with Android 17 remains unverified. Automated startup checks do not establish two-phone camera, Bluetooth, background push, call audio/video or mobile-network relay reliability.
 
 ## Source map
 
@@ -45,4 +47,4 @@ Pure Dart checks for grouping, exact paise totals, calendar-day prediction and d
 - `supabase/migrations/20261020165344_us_v1_6.sql`: additive database changes.
 - `supabase/functions/call-relay/`: authenticated relay credential endpoint.
 
-The UI scope baseline was updated only for authorized media-service changes and the Cycle care route. All other protected backend/service files remain guarded. This branch remains a candidate until its exact source and signed APK pass the release checks.
+The UI scope baseline was updated only for authorized media-service changes and the Cycle care route. All other protected backend/service files remain guarded. The release report binds the published APK to its source, checksum and validation runs.

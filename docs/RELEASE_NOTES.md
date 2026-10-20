@@ -1,4 +1,4 @@
-# Us 1.6.0 candidate
+# Us 1.6.0
 
 - Expense dates, categories, outing groups, group totals, search and editing.
 - Cycle care with history, symptoms, mood, calendar estimates and optional partner sharing.
@@ -10,3 +10,5 @@
 Calling is experimental until a TURN relay and physical two-phone tests are completed. Direct calls can fail on restrictive networks. Incoming notifications open Us to answer; full-screen native Telecom integration is not included.
 
 Install as an update without uninstalling the existing app. Physical camera, Bluetooth and call-media checks are separate from automated installation/launch tests.
+
+Validation: 121 Flutter tests passed; signed update/launch checked on Android 7 and 15. Android 17 testing was skipped at the user’s request and compatibility remains unverified.

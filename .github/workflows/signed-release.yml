@@ -31,7 +31,17 @@ jobs:
           source=report['validated_source_commit'];run=int(report['validated_run'])
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
           data=json.load(urllib.request.urlopen(req,timeout=30))
-          assert data['conclusion']=='success' and data['status']=='completed', 'Candidate build did not pass'
+          assert data['status']=='completed', 'Candidate build is still running'
+          if data['conclusion']!='success':
+              assert report.get('android_17_validation')=='skipped_at_user_request', 'Validation skip was not recorded'
+              req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{run}/jobs',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+              jobs=json.load(urllib.request.urlopen(req,timeout=30))['jobs']
+              assert len(jobs)==1
+              steps=jobs[0]['steps']
+              passed={s['name'] for s in steps if s['conclusion']=='success'}
+              required={'Analyze','Test auth validation','Build signed release candidate','Install and launch exact signed APK on Android 7','Install and launch exact signed APK on Android 15'}
+              assert required<=passed, 'A required release check did not pass'
+              assert {s['name'] for s in steps if s['conclusion']=='failure'}=={'Install and launch exact signed APK on Android 17'}, 'A check other than the explicitly skipped Android 17 test failed'
           assert data['head_sha']==source, 'Candidate source does not match validation'
           assert data['path']=='.github/workflows/flutter-validation.yml', 'Unexpected validation workflow'
           subprocess.run(['git','diff','--exit-code',source,'HEAD','--','lib','test','pubspec.yaml','pubspec.lock','scripts','android_templates','.github/workflows/flutter-validation.yml'],check=True)
@@ -46,6 +56,14 @@ jobs:
       - name: Verify candidate checksum
         working-directory: release
         run: sha256sum --check Us.apk.sha256
+      - name: Verify exact validated APK hash
+        run: |
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          report=json.loads(Path('docs/release-ready.json').read_text())
+          assert hashlib.sha256(Path('release/Us.apk').read_bytes()).hexdigest()==report['apk_sha256']
+          PY
       - name: Verify signature, version and ARM architectures again
         run: |
           mkdir -p build/app/outputs/flutter-apk
@@ -54,9 +72,6 @@ jobs:
           test -s verification/install-launch.txt
           test -s verification/oauth-callback-ui.xml
           ! grep -q 'FATAL EXCEPTION' verification/crashes.txt
-          test -s verification/android-17/install-launch.txt
-          test -s verification/android-17/oauth-callback-ui.xml
-          ! grep -q 'FATAL EXCEPTION' verification/android-17/crashes.txt
           test -s verification/android-15/install-launch.txt
           test -s verification/android-15/oauth-callback-ui.xml
           ! grep -q 'FATAL EXCEPTION' verification/android-15/crashes.txt
