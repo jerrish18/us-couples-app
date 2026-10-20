@@ -26,6 +26,8 @@ import '../../core/media.dart';
 import '../../core/ui.dart';
 import '../../core/share_inbox.dart';
 import 'voice_bubble.dart';
+import 'video_bubble.dart';
+import '../calls/call_service.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -126,7 +128,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       _text.clear();
       unawaited(space.typing(false));
       if (mounted) setState(() => _reply = null);
-      HapticFeedback.lightImpact();
+      UsHaptics.confirm();
     } catch (_) {
       if (mounted) _notice('Could not save this message. Please try again.');
     } finally {
@@ -142,8 +144,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _focus.unfocus();
     final choice = await showGlassBottomSheet<String>(
       context: context,
-      builder: (sheet) =>
-          ChatAttachmentSheet(onSelect: (value) => Navigator.pop(sheet, value)),
+      builder: (sheet) => SizedBox(
+        height: MediaQuery.sizeOf(sheet).height * .65,
+        child: ChatAttachmentSheet(
+          onSelect: (value) => Navigator.pop(sheet, value),
+        ),
+      ),
     );
     if (!mounted || choice == null) return;
     // Let the sheet finish closing before Android launches its picker activity.
@@ -154,6 +160,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         await _photo(space, ImageSource.gallery);
       case 'camera':
         await _photo(space, ImageSource.camera);
+      case 'video':
+        await _video(space, ImageSource.camera);
+      case 'gallery_video':
+        await _video(space, ImageSource.gallery);
       case 'music':
         await _music(space);
       case 'file':
@@ -174,11 +184,63 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final picked = result.files?.firstOrNull;
       if (picked == null) return;
       final space = ref.read(spaceProvider);
-      final path = await preparePhoto(
-        picked.path,
-        coupleId: space.session.coupleId!,
-      );
-      if (mounted) await _previewPhoto(space, path);
+      if (picked.mimeType?.startsWith('video/') == true ||
+          [
+            'mp4',
+            'mov',
+            'm4v',
+            '3gp',
+          ].contains(picked.path.split('.').last.toLowerCase())) {
+        final path = await prepareVideo(
+          picked.path,
+          coupleId: space.session.coupleId!,
+        );
+        if (mounted) {
+          final send = await showGlassDialog<bool>(
+            context: context,
+            builder: (c) => GlassDialog(
+              title: const Text('Send recovered video?'),
+              content: VideoBubble(
+                space: space,
+                message: {
+                  '_local_file': path,
+                  'file_name': 'Recovered video preview',
+                },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(c, false),
+                  child: const Text('Cancel'),
+                ),
+                ExpressiveButton(
+                  onPressed: () => Navigator.pop(c, true),
+                  child: const Text('Send video'),
+                ),
+              ],
+            ),
+          );
+          if (send == true && mounted)
+            await _send(
+              space,
+              file: path,
+              kind: 'video',
+              fileName: 'Recovered video',
+              mime: path.endsWith('.mov')
+                  ? 'video/quicktime'
+                  : path.endsWith('.3gp')
+                  ? 'video/3gpp'
+                  : 'video/mp4',
+            );
+          else
+            await File(path).delete();
+        }
+      } else {
+        final path = await preparePhoto(
+          picked.path,
+          coupleId: space.session.coupleId!,
+        );
+        if (mounted) await _previewPhoto(space, path);
+      }
     } catch (_) {
       if (mounted)
         _notice('Could not recover the photo. Please choose it again.');
@@ -240,6 +302,70 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
   }
 
+  Future<void> _video(UsSpace space, ImageSource source) async {
+    if (_choosing || _sending || _recording) return;
+    setState(() => _choosing = true);
+    _focus.unfocus();
+    String? copy;
+    try {
+      final picked = await ImagePicker().pickVideo(
+        source: source,
+        maxDuration: const Duration(minutes: 2),
+      );
+      if (picked == null || !mounted) return;
+      copy = await prepareVideo(picked.path, coupleId: space.session.coupleId!);
+      if (!mounted) return;
+      final send = await showGlassDialog<bool>(
+        context: context,
+        builder: (c) => GlassDialog(
+          title: const Text('Send this video?'),
+          content: VideoBubble(
+            space: space,
+            message: {'_local_file': copy, 'file_name': 'Video preview'},
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancel'),
+            ),
+            ExpressiveButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Send video'),
+            ),
+          ],
+        ),
+      );
+      if (send == true && mounted) {
+        await _send(
+          space,
+          file: copy,
+          kind: 'video',
+          fileName: 'A video for you',
+          mime: copy.endsWith('.mov')
+              ? 'video/quicktime'
+              : copy.endsWith('.3gp')
+              ? 'video/3gpp'
+              : 'video/mp4',
+        );
+        copy = null;
+      }
+    } catch (error) {
+      if (mounted)
+        _notice(
+          error is StateError
+              ? '${error.message}'
+              : 'Could not open the video camera or gallery. Check camera and microphone permissions.',
+        );
+    } finally {
+      if (copy != null) {
+        try {
+          await File(copy).delete();
+        } catch (_) {}
+      }
+      if (mounted) setState(() => _choosing = false);
+    }
+  }
+
   Future<void> _music(UsSpace space) async {
     if (_choosing) return;
     setState(() => _choosing = true);
@@ -289,7 +415,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       );
       queued = true;
       if (mounted) setState(() => _reply = null);
-      HapticFeedback.lightImpact();
+      UsHaptics.confirm();
     } catch (_) {
       if (mounted) _notice('Could not dedicate this song. Please try again.');
     } finally {
@@ -359,7 +485,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     'pdf': 'application/pdf',
     'txt': 'text/plain',
     'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'xls': 'application/vnd.ms-excel',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
@@ -384,8 +511,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final folder = await Directory(
       '${root.path}/us-media/${space.session.coupleId}',
     ).create(recursive: true);
-    final copy = await File(path)
-        .copy('${folder.path}/${const Uuid().v4()}.$ext');
+    final copy = await File(
+      path,
+    ).copy('${folder.path}/${const Uuid().v4()}.$ext');
     await _send(
       space,
       file: copy.path,
@@ -835,6 +963,31 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         final polls = space.rows['polls'] ?? [];
         return Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final video in [false, true])
+                    ActionChip(
+                      avatar: Icon(
+                        video ? Icons.videocam_outlined : Icons.call_outlined,
+                        size: 18,
+                      ),
+                      label: Text(video ? 'Video call' : 'Voice call'),
+                      onPressed: () async {
+                        final service = ref.read(callProvider);
+                        await service.start(video: video);
+                        if (mounted && service.error != null) {
+                          _notice(service.error!);
+                          service.clearError();
+                        }
+                      },
+                    ),
+                ],
+              ),
+            ),
             ListTile(
               contentPadding: const EdgeInsets.fromLTRB(
                 UsTokens.s20,
@@ -948,12 +1101,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     _find(space);
                   },
                   maxLength: 100,
-                  buildCounter: (
-                    _, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => null,
+                  buildCounter:
+                      (
+                        _, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) => null,
                   decoration: const InputDecoration(
                     hintText: 'Search messages or documents',
                     prefixIcon: Icon(Icons.search),
@@ -1043,9 +1197,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             older == null ||
                             '${older['created_at']}'.substring(0, 10) != day;
                         final text = m['body'] as String? ?? '';
-                        final link = RegExp(r'https?://[^\s<>]+')
-                            .firstMatch(text)
-                            ?.group(0);
+                        final link = RegExp(
+                          r'https?://[^\s<>]+',
+                        ).firstMatch(text)?.group(0);
                         return Column(
                           children: [
                             if (showDay)
@@ -1055,9 +1209,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 ),
                                 child: Text(
                                   displayDate(day),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium,
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.labelMedium,
                                 ),
                               ),
                             Dismissible(
@@ -1184,6 +1338,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 ),
                                               ),
                                             if (!deleted &&
+                                                m['media_kind'] == 'video')
+                                              VideoBubble(
+                                                space: space,
+                                                message: m,
+                                              ),
+                                            if (m['deleted_at'] == null &&
                                                 m['media_kind'] == 'voice')
                                               VoiceBubble(
                                                 key: ValueKey(
@@ -1196,30 +1356,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 m['media_kind'] == 'file' &&
                                                 !isMusicDedication(m))
                                               TextButton.icon(
-                                                onPressed: () => safely(context, () async {
-                                                  final path =
-                                                      m['_local_file']
-                                                          as String? ??
-                                                      await space.mediaFile(
-                                                        m['media_path']
-                                                            as String,
-                                                      );
-                                                  await SharePlus.instance.share(
-                                                    ShareParams(
-                                                      files: [
-                                                        XFile(
-                                                          path,
-                                                          name:
-                                                              m['file_name']
-                                                                  as String?,
-                                                          mimeType:
-                                                              m['mime_type']
-                                                                  as String?,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                }),
+                                                onPressed: () => safely(
+                                                  context,
+                                                  () async {
+                                                    final path =
+                                                        m['_local_file']
+                                                            as String? ??
+                                                        await space.mediaFile(
+                                                          m['media_path']
+                                                              as String,
+                                                        );
+                                                    await SharePlus.instance.share(
+                                                      ShareParams(
+                                                        files: [
+                                                          XFile(
+                                                            path,
+                                                            name:
+                                                                m['file_name']
+                                                                    as String?,
+                                                            mimeType:
+                                                                m['mime_type']
+                                                                    as String?,
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
                                                 icon: const Icon(
                                                   Icons.description_outlined,
                                                 ),
@@ -1295,9 +1458,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                             : read
                                                             ? 'Read'
                                                             : 'Sent'}' : ''}',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .labelSmall,
+                                                  style: Theme.of(
+                                                    context,
+                                                  ).textTheme.labelSmall,
                                                 ),
                                                 if (mine &&
                                                     m['_pending'] != true)
@@ -1438,12 +1601,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           maxLines: 4,
                           maxLength: 8000,
                           textCapitalization: TextCapitalization.sentences,
-                          buildCounter: (
-                            _, {
-                            required currentLength,
-                            required isFocused,
-                            maxLength,
-                          }) => null,
+                          buildCounter:
+                              (
+                                _, {
+                                required currentLength,
+                                required isFocused,
+                                maxLength,
+                              }) => null,
                           onChanged: (_) {
                             _typingDebounce?.cancel();
                             _typingDebounce = Timer(

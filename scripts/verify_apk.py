@@ -24,7 +24,7 @@ resources = subprocess.check_output([str(aapt),'dump','resources',str(apk)],text
 if 'drawable/us_notification' not in resources:
     raise SystemExit('Notification icon was stripped from the release APK')
 badging = subprocess.check_output([str(aapt),'dump','badging',str(apk)],text=True)
-if "versionCode='5'" not in badging or "sdkVersion:'24'" not in badging or "name='com.jerrish18.us'" not in badging:
+if "versionCode='6'" not in badging or "sdkVersion:'24'" not in badging or "name='com.jerrish18.us'" not in badging:
     raise SystemExit('APK package or minimum Android version is incorrect')
 out = Path('release');out.mkdir(exist_ok=True)
 target = out / 'Us.apk';shutil.copyfile(apk, target)

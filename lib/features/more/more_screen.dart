@@ -226,6 +226,12 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                           onTap: () => context.push('/lists'),
                         ),
                         FeatureTile(
+                          title: 'Cycle care',
+                          accent: Accent.pink,
+                          icon: Icons.water_drop_outlined,
+                          onTap: () => context.push('/cycle'),
+                        ),
+                        FeatureTile(
                           title: 'Our journal',
                           accent: Accent.lavender,
                           icon: Icons.auto_stories_rounded,

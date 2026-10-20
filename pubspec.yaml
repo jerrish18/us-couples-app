@@ -1,7 +1,7 @@
 name: us
 description: A private space for two.
 publish_to: none
-version: 1.5.1+5
+version: 1.6.0+6
 environment:
   sdk: '>=3.8.0 <4.0.0'
 dependencies:
@@ -24,6 +24,8 @@ dependencies:
   flutter_image_compress: 2.4.0
   record: 6.1.2
   just_audio: 0.10.6
+  video_player: 2.14.1
+  flutter_webrtc: 1.6.2+hotfix.4
   flutter_local_notifications: 19.5.0
   timezone: 0.10.1
   home_widget: 0.8.0

@@ -14,6 +14,9 @@ import 'core/share_inbox.dart';
 import 'features/location/live_location.dart';
 import 'features/location/location_screen.dart';
 import 'features/together/together_screen.dart';
+import 'features/expenses/expenses_screen.dart';
+import 'features/cycle/cycle_screen.dart';
+import 'features/calls/call_host.dart';
 import 'core/session.dart';
 import 'core/design.dart';
 import 'core/feature_header.dart';
@@ -180,7 +183,14 @@ class _UsAppState extends ConsumerState<UsApp> {
           path: '/expenses',
           builder: (_, state) => const FeatureScope(
             accent: Accent.green,
-            child: AppLockGate(child: TogetherScreen(kind: 'expenses')),
+            child: AppLockGate(child: ExpensesScreen()),
+          ),
+        ),
+        GoRoute(
+          path: '/cycle',
+          builder: (_, state) => const FeatureScope(
+            accent: Accent.pink,
+            child: AppLockGate(child: CycleScreen()),
           ),
         ),
         GoRoute(
@@ -257,7 +267,9 @@ class _UsAppState extends ConsumerState<UsApp> {
           value: Theme.of(context).brightness == Brightness.dark
               ? SystemUiOverlayStyle.light
               : SystemUiOverlayStyle.dark,
-          child: AmbientMesh(child: child ?? const SizedBox.shrink()),
+          child: AmbientMesh(
+            child: CallHost(child: child ?? const SizedBox.shrink()),
+          ),
         ),
       ),
     );

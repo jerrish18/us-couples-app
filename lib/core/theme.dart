@@ -24,7 +24,7 @@ enum Accent { yellow, green, pink, blue, lavender, coral }
 
 abstract final class UsColors {
   static const ink = Color(0xff202539),
-      night = Color(0xff151d30),
+      night = Color(0xff14121b),
       paper = Color(0xfff8f6f0);
   static const white = Color(0xffffffff),
       clear = Color(0x00000000),
@@ -55,12 +55,12 @@ abstract final class UsColors {
     coralInk,
   ];
   static const _deep = [
-    Color(0xff3f3624),
-    Color(0xff243d35),
-    Color(0xff432d42),
-    Color(0xff233b52),
-    Color(0xff34304d),
-    Color(0xff49332f),
+    Color(0xff3e3422),
+    Color(0xff243b2d),
+    Color(0xff43283a),
+    Color(0xff243547),
+    Color(0xff352a48),
+    Color(0xff442e29),
   ];
 }
 
@@ -128,7 +128,7 @@ abstract final class UsTokens {
       border = 1.0,
       shadow = 28.0,
       photoDecode = 1080;
-  static const fast = 180, interaction = 320, entrance = 480, stagger = 45;
+  static const fast = 160, interaction = 380, entrance = 560, stagger = 45;
   static const page = EdgeInsetsDirectional.fromSTEB(s20, s16, s20, s32);
   static const gap = SizedBox(height: s16);
 }
@@ -177,15 +177,34 @@ ThemeData usTheme(Brightness brightness) {
         brightness: brightness,
       ).copyWith(
         surface: dark ? UsColors.night : UsColors.paper,
+        surfaceContainerLowest: dark
+            ? const Color(0xff100f15)
+            : const Color(0xffffffff),
+        surfaceContainer: dark
+            ? const Color(0xff25222e)
+            : const Color(0xfff1eef5),
+        surfaceContainerHighest: dark
+            ? const Color(0xff393340)
+            : const Color(0xffe5e1eb),
+        outline: dark ? const Color(0xff9d94ab) : const Color(0xff787080),
+        outlineVariant: dark
+            ? const Color(0xff4d4459)
+            : const Color(0xffcdc5d3),
+        primary: dark ? UsColors.lavender : UsColors.lavenderInk,
+        onPrimary: dark ? const Color(0xff302047) : UsColors.white,
+        primaryContainer: dark ? const Color(0xff413054) : UsColors.lavender,
+        onPrimaryContainer: dark
+            ? const Color(0xffecdcff)
+            : const Color(0xff302047),
         onSurface: dark ? const Color(0xfff5f4fb) : UsColors.ink,
         onSurfaceVariant: dark
-            ? const Color(0xffd2d4e4)
+            ? const Color(0xffd0c5dc)
             : const Color(0xff52596a),
         surfaceContainerLow: dark
-            ? const Color(0xff232d43)
+            ? const Color(0xff201d28)
             : const Color(0xfffcfaf5),
         surfaceContainerHigh: dark
-            ? const Color(0xff30394f)
+            ? const Color(0xff302b39)
             : const Color(0xffedeaf4),
         error: dark ? const Color(0xffffb3bd) : UsColors.danger,
       );

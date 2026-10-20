@@ -27,6 +27,18 @@ class ChatAttachmentSheet extends StatelessWidget {
           ),
           ('camera', Icons.camera_alt_outlined, 'Camera', 'Take a photo now'),
           (
+            'video',
+            Icons.videocam_outlined,
+            'Record video',
+            'Capture a video · up to 50 MB',
+          ),
+          (
+            'gallery_video',
+            Icons.video_library_outlined,
+            'Video gallery',
+            'Choose a video · up to 50 MB',
+          ),
+          (
             'music',
             Icons.music_note_rounded,
             'Dedicate a song',

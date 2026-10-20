@@ -43,6 +43,8 @@ void main() {
   for (final entry in {
     'Gallery': 'photo',
     'Camera': 'camera',
+    'Record video': 'video',
+    'Video gallery': 'gallery_video',
     'Dedicate a song': 'music',
     'Document': 'file',
     'Poll': 'poll',

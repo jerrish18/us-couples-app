@@ -82,3 +82,17 @@ for styles in Path('android/app/src/main/res').glob('values*/styles.xml'):
                 if item is None:item=ET.SubElement(style,'item',{'name':name})
                 item.text=value
     tree.write(styles,encoding='unicode')
+
+# v1.6 camera / microphone foreground service; started only after foreground consent.
+shutil.copyfile('android_templates/UsCallService.kt', Path('android/app/src/main/kotlin/com/jerrish18/us/UsCallService.kt'))
+text=manifest.read_text()
+text=text.replace('<application', '<uses-permission android:name="android.permission.CAMERA"/><uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/><uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE"/><uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA"/><uses-feature android:name="android.hardware.camera" android:required="false"/><uses-feature android:name="android.hardware.microphone" android:required="false"/><application',1)
+text=text.replace('</application>','<service android:name=".UsCallService" android:exported="false" android:foregroundServiceType="microphone|camera"/></application>')
+manifest.write_text(text)
+
+# Android 17: LAN permission covers same-Wi-Fi WebRTC; Nearby Devices for headsets.
+manifest.write_text(manifest.read_text().replace('<application','<uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK"/><uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/><application',1))
+gradle.write_text(gradle.read_text().replace('compileSdk = flutter.compileSdkVersion','compileSdk = 37').replace('targetSdk = flutter.targetSdkVersion','targetSdk = 37'))
+# Preserve JNI methods used by the WebRTC native library in release builds.
+rules=Path('android/app/proguard-rules.pro')
+rules.write_text(rules.read_text()+'\n-keep class org.webrtc.** { *; }\n-keep class com.cloudwebrtc.webrtc.** { *; }\n')
