@@ -23,6 +23,7 @@ import 'package:us/features/pairing/pair_screen.dart';
 import 'package:us/features/lists/lists_screen.dart';
 import 'package:us/features/journal/journal_screen.dart';
 import 'package:us/features/together/together_screen.dart';
+import 'package:us/features/expenses/expenses_screen.dart';
 import 'package:us/features/location/location_screen.dart';
 import 'package:us/features/location/live_location.dart';
 
@@ -167,7 +168,8 @@ class PreviewSpace extends ChangeNotifier implements UsSpace {
       {
         'id': 'journal',
         'author_id': 'one',
-        'body': 'Today felt like a little pause from the world. Just us, a long walk, and no hurry to be anywhere.',
+        'body':
+            'Today felt like a little pause from the world. Just us, a long walk, and no hurry to be anywhere.',
         'entry_date': today,
         'shared': false,
       },
@@ -278,7 +280,7 @@ void main() {
     'lists': const ListsScreen(),
     'journal': const JournalScreen(),
     'letters': const TogetherScreen(kind: 'letters'),
-    'expenses': const TogetherScreen(kind: 'expenses'),
+    'expenses': const ExpensesScreen(),
     'collections': const TogetherScreen(kind: 'collections'),
     'location': const LocationScreen(),
     'composer': MemoryComposer(

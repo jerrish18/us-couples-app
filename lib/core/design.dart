@@ -4,9 +4,10 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
-import 'package:flutter/services.dart';
 
 import 'theme.dart';
+import 'haptics.dart';
+export 'haptics.dart';
 export 'theme.dart';
 
 final _glassOverlayDepth = ValueNotifier<int>(0);
@@ -122,7 +123,7 @@ class _MeshPainter extends CustomPainter {
       final paint = Paint()
         ..shader = RadialGradient(
           colors: [
-            colors[i].withValues(alpha: dark ? .13 : .5),
+            colors[i].withValues(alpha: dark ? .065 : .5),
             colors[i].withValues(alpha: 0),
           ],
         ).createShader(Rect.fromCircle(center: centers[i], radius: radius));
@@ -171,8 +172,8 @@ class GlassCard extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            UsColors.white.withValues(alpha: dark ? .14 : .20),
-            UsColors.white.withValues(alpha: dark ? .08 : .12),
+            UsColors.white.withValues(alpha: dark ? .06 : .20),
+            UsColors.white.withValues(alpha: dark ? .025 : .12),
           ],
         ),
       ),
@@ -211,7 +212,7 @@ class GlassCard extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              UsColors.white.withValues(alpha: dark ? .48 : .95),
+              UsColors.white.withValues(alpha: dark ? .16 : .95),
               color.withValues(alpha: .12),
             ],
           ),
@@ -382,7 +383,7 @@ class _PressScaleState extends State<PressScale> {
     onPointerCancel: (_) => setState(() => _down = false),
     onPointerUp: (_) => setState(() => _down = false),
     child: AnimatedScale(
-      scale: _down ? .96 : 1,
+      scale: _down ? .94 : 1,
       duration: usMotion(context, _down ? UsTokens.fast : UsTokens.interaction),
       curve: const ExpressiveSpring(),
       child: widget.child,
@@ -421,7 +422,7 @@ class ExpressiveButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     void action() {
-      HapticFeedback.selectionClick();
+      UsHaptics.selection();
       onPressed?.call();
     }
 
@@ -468,9 +469,9 @@ class PageEntrance extends StatelessWidget {
         ).transform(raw);
         final spatial = const ExpressiveSpring().transform(value);
         return Transform.translate(
-          offset: Offset(0, UsTokens.s16 * (1 - spatial)),
+          offset: Offset(0, UsTokens.s24 * (1 - spatial)),
           child: Transform.scale(
-            scale: .97 + .03 * spatial,
+            scale: .95 + .05 * spatial,
             alignment: Alignment.topCenter,
             child: Opacity(opacity: value, child: child),
           ),
@@ -865,7 +866,7 @@ class _UsRefreshState extends State<UsRefresh> {
             RefreshIndicator(
               onRefresh: () async {
                 setState(() => _busy = true);
-                HapticFeedback.lightImpact();
+                UsHaptics.confirm();
                 try {
                   await widget.onRefresh();
                 } finally {
@@ -1016,101 +1017,96 @@ class UsDock extends StatelessWidget {
     Icons.more_horiz_rounded,
   ];
   @override
-  Widget build(BuildContext context) => SafeArea(
-    top: false,
-    minimum: const EdgeInsets.fromLTRB(
-      UsTokens.s12,
-      UsTokens.s8,
-      UsTokens.s12,
-      UsTokens.s12,
-    ),
-    child: GlassCard(
-      blur: true,
-      radius: UsTokens.s40,
-      padding: const EdgeInsets.all(UsTokens.s4),
-      child: LayoutBuilder(
-        builder: (context, c) => SizedBox(
-          height: UsTokens.s72,
-          child: Stack(
-            children: [
-              AnimatedAlign(
-                duration: usMotion(context),
-                curve: const ExpressiveSpring(),
-                alignment: AlignmentDirectional(-1 + selected * .5, 0),
-                child: Container(
-                  width: c.maxWidth / 5,
-                  height: UsTokens.s64,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(UsTokens.pill),
-                  ),
-                ),
-              ),
-              Row(
-                children: [
-                  for (var i = 0; i < 5; i++)
-                    Expanded(
-                      child: Semantics(
-                        button: true,
-                        selected: selected == i,
-                        label: labels[i],
-                        excludeSemantics: true,
-                        child: Tooltip(
-                          message: labels[i],
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(UsTokens.pill),
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              onSelect(i);
-                            },
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  height: UsTokens.s40,
-                                  child: Center(
-                                    child: i == 2
-                                        ? FlowerBadge(
-                                            icon: icons[i],
-                                            accent: Accent.yellow,
-                                            size: UsTokens.s40,
-                                          )
-                                        : Icon(
-                                            icons[i],
-                                            size: UsTokens.s24,
-                                            color: selected == i
-                                                ? Theme.of(context)
-                                                      .colorScheme
-                                                      .primary
-                                                : Theme.of(context)
-                                                      .colorScheme
-                                                      .onSurfaceVariant,
-                                          ),
-                                  ),
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      child: GlassCard(
+        blur: true,
+        radius: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Row(
+          children: [
+            for (var i = 0; i < labels.length; i++)
+              Expanded(
+                child: Semantics(
+                  button: true,
+                  selected: selected == i,
+                  label: labels[i],
+                  excludeSemantics: true,
+                  child: Tooltip(
+                    message: labels[i],
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(24),
+                      onTap: () {
+                        if (selected != i) {
+                          UsHaptics.selection();
+                          onSelect(i);
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedContainer(
+                              duration: usMotion(context, 360),
+                              curve: const ExpressiveSpring(),
+                              width: 56,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: selected == i
+                                    ? colors.primaryContainer
+                                    : UsColors.clear,
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: AnimatedScale(
+                                scale: selected == i ? 1.08 : 1,
+                                duration: usMotion(context),
+                                curve: const ExpressiveSpring(),
+                                child: Icon(
+                                  icons[i],
+                                  size: 24,
+                                  color: selected == i
+                                      ? colors.onPrimaryContainer
+                                      : colors.onSurfaceVariant,
                                 ),
-                                const SizedBox(height: UsTokens.s4),
-                                FittedBox(
-                                  child: Text(
-                                    labels[i],
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 6),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                              ),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  labels[i],
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(
+                                        color: selected == i
+                                            ? colors.onSurface
+                                            : colors.onSurfaceVariant,
+                                        fontWeight: selected == i
+                                            ? FontWeight.w800
+                                            : FontWeight.w500,
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                ],
+                  ),
+                ),
               ),
-            ],
-          ),
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class StateBanner extends StatelessWidget {

@@ -1,12 +1,12 @@
-# Us 1.5.1
+# Us 1.6.0 candidate
 
-- Cleaner spacing between settings cards and feature tiles.
-- Chat composer follows the keyboard and sits directly above the navigation dock.
-- Readable chat text spacing.
-- Bottom attachment sheet with Gallery, Camera, music, documents and polls.
-- Direct chat camera shortcut and photo preview before sending.
-- Private MP3/M4A music dedications with a personal note and in-app playback (up to 5 MB).
+- Expense dates, categories, outing groups, group totals, search and editing.
+- Cycle care with history, symptoms, mood, calendar estimates and optional partner sharing.
+- Record/select/preview/send videos and play them inside chat (50 MB cap).
+- Voice/video calling implementation with private signaling, incoming notifications and active-call controls.
+- Warmer dark mode, redesigned dock highlight, stronger spring motion and native haptics.
+- Android 17 target with context-specific permissions and an active-call foreground service.
 
-Install this update over your existing Us app. Keep the existing app installed to preserve local drafts and queued messages.
+Calling is experimental until a TURN relay and physical two-phone tests are completed. Direct calls can fail on restrictive networks. Incoming notifications open Us to answer; full-screen native Telecom integration is not included.
 
-Music uses audio files selected from your phone; this release does not provide a searchable streaming music catalogue.
+Install as an update without uninstalling the existing app. Physical camera, Bluetooth and call-media checks are separate from automated installation/launch tests.

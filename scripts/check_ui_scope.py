@@ -1,4 +1,4 @@
-"""A UI release cannot silently alter services, backend assets, schema or routes."""
+"""Guard unrelated services and established navigation. v1.6 explicitly adds cycle care and expands media support."""
 import hashlib,json,re
 from pathlib import Path
 manifest=json.loads(Path('docs/ui-scope.json').read_text())

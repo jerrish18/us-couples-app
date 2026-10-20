@@ -1,12 +1,12 @@
 {
   "frozen_files": {
-    "lib/core/space.dart": "379139ab324126e9ebdbadc3a12e277e097801991647ee0ff955edb76ee15665",
+    "lib/core/space.dart": "78cb5576bf616aab307400e5e71f223f23e56861fb72ed555c357661a808e0d7",
     "lib/core/session.dart": "cc3c70b9877c56fef6ecbe1d536c2c7e492e0240d961eaa37bd8671d0a3a9e6f",
     "lib/core/config.dart": "a39d2616981682765c564eb114acc8a32ab45ff32a7cef103498079b49cfa83f",
     "lib/core/local_database.dart": "3d423c4b16b60742754da04061ee8c3b4ded5e3ac87f3f09f1d2b026595cc5e4",
     "lib/core/auth_links.dart": "b10e880cca1dc7417fb29efa6e5ff45e6f1bf4b9ac4561b7bf7483c01e5f1b93",
     "lib/core/share_inbox.dart": "3b7ef3d841007d2fb7f1e769375f9db9e61aea69b0bbcd94e4d664de29fc4e36",
-    "lib/core/media.dart": "37f9c82be2fceae412426f9e05285ef9512aa00541b9465032a9e99e4515863e",
+    "lib/core/media.dart": "870e8f52232fa42d891943d8100dce84c4b188ffecbc4e79d0b9cdab5905f1e3",
     "lib/core/reminder_dates.dart": "34b7bb761fbcfd9d5f39a8176f13a0e3cc9ade597682b9aa7e63aad394c5a795",
     "lib/core/widget.dart": "d06b860197aceae9f0657ad7ec605d6b55b8e58156be954db2ee59f61b9c45a7",
     "lib/features/location/live_location.dart": "47fbf301d5640cdadd0257d5ca9a273192c3aa6b8ea7510b86dfc6a0a345fe3e",
@@ -39,6 +39,7 @@
     "/expenses",
     "/collections",
     "/lists",
-    "/journal"
+    "/journal",
+    "/cycle"
   ]
 }

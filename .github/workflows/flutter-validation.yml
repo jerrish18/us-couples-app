@@ -1,7 +1,7 @@
 name: Flutter validation
 on:
   push:
-    branches: [build/us-v1-5]
+    branches: [build/us-v1-5, feat/us-1-6]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -12,7 +12,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-java@v4
@@ -100,6 +100,15 @@ jobs:
             !android/app/us-release.jks
             !android/key.properties
           retention-days: 1
+      - name: Install and launch exact signed APK on Android 17
+        timeout-minutes: 10
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 37
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: US_VERIFICATION_DIR=verification/android-17 python3 scripts/emulator_smoke.py
       - name: Preserve signed candidate and launch evidence
         if: always()
         uses: actions/upload-artifact@v4

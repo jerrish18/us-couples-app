@@ -78,10 +78,16 @@ Deno.serve(async req => {
       try{
         const prefs=await api("notification_preferences?user_id=eq."+item.recipient_id+"&select=*",undefined,"GET");
         const pref=prefs[0];
-        const toggle=item.kind==="message"?"messages":item.kind==="miss_me"?"miss_me"
+        const toggle=item.kind==="call"?"messages":item.kind==="message"?"messages":item.kind==="miss_me"?"miss_me"
           :item.kind==="date_invite"||item.kind==="date_response"?"dates":item.kind==="nudge"?"nudges":"reminders";
         if(pref?.[toggle]===false || (toggle==="nudges" && pref?.nudges!==true)){
           await api("rpc/finish_push",{p_id:item.id,p_success:true});continue;
+        }
+        if(item.kind==="call"){
+          const calls=await api("calls?id=eq."+encodeURIComponent(item.payload.entity_id)+"&select=state,expires_at",undefined,"GET");
+          if(!calls.length || calls[0].state!=="ringing" || new Date(calls[0].expires_at).getTime()<=Date.now()){
+            await api("rpc/finish_push",{p_id:item.id,p_success:true});continue;
+          }
         }
         if(item.kind==="date_reminder"){
           const dates=await api("dates?id=eq."+encodeURIComponent(item.payload.entity_id)+"&select=starts_at",undefined,"GET");
@@ -100,7 +106,7 @@ Deno.serve(async req => {
           data.event_id=item.id;
           const r=await fetch(endpoint,{method:"POST",
             headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},
-            body:JSON.stringify({message:{token:device.token,data,android:{priority:"high",ttl:"86400s"}}}),
+            body:JSON.stringify({message:{token:device.token,data,android:{priority:"high",ttl:item.kind==="call"?"60s":"86400s"}}}),
             signal:AbortSignal.timeout(15000)});
           if(!r.ok){
             const response=await r.json();

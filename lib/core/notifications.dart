@@ -60,6 +60,12 @@ class UsNotifications {
         >();
     for (final c in const [
       AndroidNotificationChannel(
+        'us_calls',
+        'Incoming calls',
+        description: 'Calls from your person',
+        importance: Importance.max,
+      ),
+      AndroidNotificationChannel(
         'us_chat',
         'Messages',
         description: 'Messages from your person',
@@ -162,7 +168,9 @@ class UsNotifications {
 
   static Future<void> show(Map<String, dynamic> data) async {
     await initialize();
-    final channel = data['kind'] == 'message'
+    final channel = data['kind'] == 'call'
+        ? 'us_calls'
+        : data['kind'] == 'message'
         ? 'us_chat'
         : data['kind'] == 'miss_me'
         ? 'us_love'
@@ -177,7 +185,9 @@ class UsNotifications {
       NotificationDetails(
         android: AndroidNotificationDetails(
           channel,
-          channel == 'us_chat'
+          channel == 'us_calls'
+              ? 'Incoming calls'
+              : channel == 'us_chat'
               ? 'Messages'
               : channel == 'us_love'
               ? 'Miss Me'
@@ -185,6 +195,10 @@ class UsNotifications {
           color: UsColors.lavenderInk,
           importance: Importance.high,
           priority: Priority.high,
+          category: data['kind'] == 'call'
+              ? AndroidNotificationCategory.call
+              : null,
+          timeoutAfter: data['kind'] == 'call' ? 60000 : null,
           actions: data['kind'] == 'miss_me'
               ? const [
                   AndroidNotificationAction(

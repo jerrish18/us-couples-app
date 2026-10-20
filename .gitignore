@@ -17,3 +17,11 @@ coverage/
 .idea/
 *.iml
 .DS_Store
+
+supabase/.temp/
+
+__pycache__/
+
+ui-review/
+verification/
+release/

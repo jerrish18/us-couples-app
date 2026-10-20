@@ -43,6 +43,8 @@ void main() {
   for (final entry in {
     'Gallery': 'photo',
     'Camera': 'camera',
+    'Record video': 'video',
+    'Video gallery': 'gallery_video',
     'Dedicate a song': 'music',
     'Document': 'file',
     'Poll': 'poll',
@@ -127,6 +129,13 @@ void main() {
         tester.getTopLeft(find.byType(ChatAttachmentSheet)).dy,
         greaterThan(100),
       );
+      Navigator.of(tester.element(find.byType(ChatAttachmentSheet))).pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Camera'));
+      await tester.pumpAndSettle();
+      expect(find.text('Take a photo'), findsOneWidget);
+      expect(find.text('Record a video'), findsOneWidget);
+      expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(seconds: 1));
       space.dispose();

@@ -68,6 +68,12 @@ const featureLinks =
         accent: Accent.blue,
       ),
       (
+        title: 'Cycle care',
+        route: '/cycle',
+        icon: Icons.water_drop_outlined,
+        accent: Accent.pink,
+      ),
+      (
         title: 'Settings',
         route: '/more',
         icon: Icons.tune_rounded,

@@ -38,3 +38,18 @@ Future<String> preparePhoto(String path, {required String coupleId}) async {
   }
   return out;
 }
+
+const maxVideoBytes = 50 * 1024 * 1024;
+Future<String> prepareVideo(String path, {required String coupleId}) async {
+  final source = File(path);
+  if (await source.length() > maxVideoBytes)
+    throw StateError('Choose a video up to 50 MB. Try a shorter recording.');
+  final extension = path.split('.').last.toLowerCase();
+  if (!['mp4', 'mov', 'm4v', '3gp'].contains(extension))
+    throw StateError('Choose an MP4, MOV, M4V or 3GP video.');
+  final root = await getApplicationSupportDirectory();
+  final folder = await Directory('${root.path}/us-media/$coupleId')
+      .create(recursive: true);
+  return (await source.copy('${folder.path}/${const Uuid().v4()}.$extension'))
+      .path;
+}

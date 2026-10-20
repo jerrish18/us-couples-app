@@ -483,7 +483,9 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
       if (replyTo != null) row['reply_to'] = replyTo;
     }
     if (file != null) {
-      final ext = kind == 'file'
+      final ext = kind == 'video'
+          ? file.split('.').last.toLowerCase()
+          : kind == 'file'
           ? (fileName ?? 'file.txt').split('.').last.toLowerCase()
           : kind == 'voice'
           ? 'm4a'
@@ -491,7 +493,7 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
       row['media_path'] = '$cid/$uid/$id.$ext';
       if (!memory) {
         row['media_kind'] = kind;
-        if (kind == 'file') {
+        if (kind == 'file' || kind == 'video') {
           row['file_name'] = fileName;
           row['mime_type'] = mime ?? 'application/octet-stream';
           row['file_size'] = await File(file).length();
@@ -518,8 +520,11 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
             final file = File(task.localFile!);
             if (!await file.exists())
               throw StateError('Media file is missing.');
-            if (await file.length() > 5242880)
-              throw StateError('Keep media below 5 MB.');
+            if (await file.length() >
+                (row['media_kind'] == 'video' ? 52428800 : 5242880))
+              throw StateError(
+                'Keep videos below 50 MB and other media below 5 MB.',
+              );
             try {
               await session.client.storage
                   .from('couple-media')
@@ -527,7 +532,9 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
                     row['media_path'] as String,
                     file,
                     fileOptions: FileOptions(
-                      contentType: row['media_kind'] == 'file'
+                      contentType:
+                          (row['media_kind'] == 'file' ||
+                              row['media_kind'] == 'video')
                           ? (row['mime_type'] as String? ??
                                 'application/octet-stream')
                           : (row['media_kind'] == 'voice')
@@ -869,7 +876,7 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
       final response = await (await client.getUrl(Uri.parse(url)))
           .close()
           .timeout(const Duration(seconds: 20));
-      if (response.statusCode != 200 || response.contentLength > 5242880)
+      if (response.statusCode != 200 || response.contentLength > 52428800)
         throw StateError('Media could not be loaded');
       final sink = temp.openWrite();
       var bytes = 0;
@@ -878,7 +885,7 @@ class UsSpace extends ChangeNotifier with WidgetsBindingObserver {
           const Duration(seconds: 20),
         )) {
           bytes += chunk.length;
-          if (bytes > 5242880) throw StateError('Media is too large');
+          if (bytes > 52428800) throw StateError('Media is too large');
           sink.add(chunk);
         }
       } finally {
