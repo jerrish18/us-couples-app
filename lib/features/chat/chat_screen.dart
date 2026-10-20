@@ -159,7 +159,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       case 'photo':
         await _photo(space, ImageSource.gallery);
       case 'camera':
-        await _photo(space, ImageSource.camera);
+        await _camera(space);
       case 'video':
         await _video(space, ImageSource.camera);
       case 'gallery_video':
@@ -170,6 +170,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         await safely(context, () => _document(space));
       case 'poll':
         _poll(space);
+    }
+  }
+
+  Future<void> _camera(UsSpace space) async {
+    if (_choosing || _sending || _recording) return;
+    _focus.unfocus();
+    final video = await showGlassBottomSheet<bool>(
+      context: context,
+      builder: (sheet) => SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Capture a moment',
+              style: Theme.of(sheet).textTheme.titleLarge,
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(sheet, false),
+            ),
+            ListTile(
+              leading: const Icon(Icons.videocam_outlined),
+              title: const Text('Record a video'),
+              subtitle: const Text('Up to 2 minutes · 50 MB'),
+              onTap: () => Navigator.pop(sheet, true),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (video == null || !mounted) return;
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    if (video) {
+      await _video(space, ImageSource.camera);
+    } else {
+      await _photo(space, ImageSource.camera);
     }
   }
 
@@ -1587,10 +1625,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         icon: const Icon(Icons.add_circle_outline),
                       ),
                       IconButton(
-                        tooltip: 'Take a photo',
+                        tooltip: 'Camera',
                         onPressed: _sending || _recording || _choosing
                             ? null
-                            : () => _photo(space, ImageSource.camera),
+                            : () => _camera(space),
                         icon: const Icon(Icons.camera_alt_outlined),
                       ),
                       Expanded(
