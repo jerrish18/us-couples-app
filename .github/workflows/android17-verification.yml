@@ -1,0 +1,87 @@
+name: Verify existing signed APK on Android 17
+on:
+  push:
+    branches: [verify/us-1-6]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  android17:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 6086df7712949d7213d9a1d3123e4bf75a4708ff
+      - name: Confirm source build and earlier Android checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          root='https://api.github.com/repos/'+os.environ['GITHUB_REPOSITORY']
+          def get(path):
+              req=urllib.request.Request(root+path,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+              return json.load(urllib.request.urlopen(req,timeout=30))
+          run=get('/actions/runs/39465654374')
+          assert run['head_sha']=='6086df7712949d7213d9a1d3123e4bf75a4708ff'
+          assert run['status']=='completed' and run['path']=='.github/workflows/flutter-validation.yml'
+          steps=get('/actions/runs/39465654374/jobs')['jobs'][0]['steps']
+          passed={s['name'] for s in steps if s['conclusion']=='success'}
+          assert {'Analyze','Test auth validation','Build signed release candidate','Install and launch exact signed APK on Android 7','Install and launch exact signed APK on Android 15'}<=passed
+          failed={s['name'] for s in steps if s['conclusion']=='failure'}
+          assert failed=={'Install and launch exact signed APK on Android 17'}
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: signed-candidate
+          run-id: 39465654374
+          github-token: ${{ github.token }}
+      - name: Verify the exact signed APK bytes
+        run: |
+          cd release
+          sha256sum --check Us.apk.sha256
+          echo '329a6097efdf02273403598b7effecb868e83f613fc197b07cc0cd661b21a844  Us.apk' | sha256sum --check
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install current Android SDK tools
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: '15859902'
+          log-accepted-android-sdk-licenses: false
+          packages: 'platform-tools emulator platforms;android-37 build-tools;37.0.0'
+      - name: Recheck signature and enable emulator acceleration
+        run: |
+          mkdir -p build/app/outputs/flutter-apk
+          cp release/Us.apk build/app/outputs/flutter-apk/app-release.apk
+          python3 scripts/verify_apk.py
+          sudo chmod 666 /dev/kvm
+      - name: Install and launch exact signed APK on Android 17
+        timeout-minutes: 12
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 37
+          target: google_apis
+          arch: x86_64
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: US_VERIFICATION_DIR=verification/android-17 python3 scripts/emulator_smoke.py
+      - name: Record original source and APK identity
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          Path('verification/android17-source.json').write_text(json.dumps({'source_commit':'6086df7712949d7213d9a1d3123e4bf75a4708ff','build_run':39465654374,'apk_sha256':'329a6097efdf02273403598b7effecb868e83f613fc197b07cc0cd661b21a844'}))
+          PY
+      - name: Preserve verified candidate and all emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed-candidate
+          path: |
+            release/**
+            verification/**
+            ui-review/**
+          retention-days: 7
