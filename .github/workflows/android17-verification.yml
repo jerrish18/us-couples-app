@@ -66,7 +66,11 @@ jobs:
           api-level: '37.0'
           target: google_apis
           arch: x86_64
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          ram-size: 4096M
+          heap-size: 512M
+          emulator-boot-timeout: 300
+          pre-emulator-launch-script: adb start-server
+          emulator-options: -no-window -gpu swiftshader -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -no-metrics -show-kernel
           script: US_VERIFICATION_DIR=verification/android-17 python3 scripts/emulator_smoke.py
       - name: Record original source and APK identity
         run: |
