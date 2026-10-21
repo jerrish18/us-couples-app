@@ -1,3 +1,5 @@
+import '../ai/ai_screen.dart';
+import '../ai/shared_answers.dart';
 import '../../core/design.dart';
 
 import 'dart:async';
@@ -115,6 +117,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     String? mime,
   }) async {
     if (_sending) return;
+    if (file == null &&
+        _text.text.trimLeft().toLowerCase().startsWith('@us ')) {
+      await _openAi(
+        space,
+        task: 'together',
+        prompt: _text.text.trimLeft().substring(4),
+      );
+      return;
+    }
     setState(() => _sending = true);
     try {
       await space.send(
@@ -133,6 +144,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       if (mounted) _notice('Could not save this message. Please try again.');
     } finally {
       if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _openAi(
+    UsSpace space, {
+    String task = 'together',
+    String? messageId,
+    String? prompt,
+  }) async {
+    final original = _text.text;
+    final value = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => AiScreen(
+          space: space,
+          initialTask: task,
+          initialText: prompt ?? (task == 'rewrite' ? original : ''),
+          messageId: messageId,
+        ),
+      ),
+    );
+    if (value != null && mounted) {
+      _text.text = value;
+      _focus.requestFocus();
     }
   }
 
@@ -390,9 +424,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     } catch (error) {
       if (mounted)
         _notice(
-          error is StateError
-              ? '${error.message}'
-              : 'Could not open the video camera or gallery. Check camera and microphone permissions.',
+          error is StateError ? '${error.message}' : 'Could not open the video camera or gallery. Check camera and microphone permissions.',
         );
     } finally {
       if (copy != null) {
@@ -523,8 +555,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     'pdf': 'application/pdf',
     'txt': 'text/plain',
     'doc': 'application/msword',
-    'docx':
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'xls': 'application/vnd.ms-excel',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
@@ -549,9 +580,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final folder = await Directory(
       '${root.path}/us-media/${space.session.coupleId}',
     ).create(recursive: true);
-    final copy = await File(
-      path,
-    ).copy('${folder.path}/${const Uuid().v4()}.$ext');
+    final copy = await File(path)
+        .copy('${folder.path}/${const Uuid().v4()}.$ext');
     await _send(
       space,
       file: copy.path,
@@ -736,6 +766,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         ),
                       ),
                   ],
+                ),
+              if (!deleted && !pending && m['body'] != null)
+                ListTile(
+                  leading: const Icon(Icons.auto_awesome),
+                  title: const Text('Help me reply with AI'),
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    _openAi(space, task: 'reply', messageId: m['id'] as String);
+                  },
                 ),
               if (!deleted)
                 ListTile(
@@ -1070,6 +1109,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   ),
                   PopupMenuButton<String>(
                     onSelected: (v) {
+                      if (v == 'ai') _openAi(space);
                       if (v == 'stars') setState(() => _starred = !_starred);
                       if (v == 'poll') _poll(space);
                       if (v == 'sync') space.sync();
@@ -1100,6 +1140,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         );
                     },
                     itemBuilder: (_) => [
+                      const PopupMenuItem(value: 'ai', child: Text('Us AI ✨')),
                       PopupMenuItem(
                         value: 'stars',
                         child: Text(
@@ -1139,13 +1180,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                     _find(space);
                   },
                   maxLength: 100,
-                  buildCounter:
-                      (
-                        _, {
-                        required currentLength,
-                        required isFocused,
-                        maxLength,
-                      }) => null,
+                  buildCounter: (
+                    _, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
                   decoration: const InputDecoration(
                     hintText: 'Search messages or documents',
                     prefixIcon: Icon(Icons.search),
@@ -1158,6 +1198,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 padding: EdgeInsets.all(UsTokens.s8),
                 child: Text('★ Your starred messages'),
               ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ActionChip(
+                  avatar: const Icon(Icons.auto_awesome, size: 18),
+                  label: const Text('Us AI · replies, plans & more'),
+                  onPressed: () => _openAi(
+                    space,
+                    task: _text.text.trim().isEmpty ? 'together' : 'rewrite',
+                  ),
+                ),
+              ),
+            ),
+            SharedAiAnswers(space: space),
             if (pins.isNotEmpty)
               SizedBox(
                 height: UsTokens.s44,
@@ -1235,9 +1290,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             older == null ||
                             '${older['created_at']}'.substring(0, 10) != day;
                         final text = m['body'] as String? ?? '';
-                        final link = RegExp(
-                          r'https?://[^\s<>]+',
-                        ).firstMatch(text)?.group(0);
+                        final link = RegExp(r'https?://[^\s<>]+')
+                            .firstMatch(text)
+                            ?.group(0);
                         return Column(
                           children: [
                             if (showDay)
@@ -1247,9 +1302,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                 ),
                                 child: Text(
                                   displayDate(day),
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.labelMedium,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium,
                                 ),
                               ),
                             Dismissible(
@@ -1394,33 +1449,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                 m['media_kind'] == 'file' &&
                                                 !isMusicDedication(m))
                                               TextButton.icon(
-                                                onPressed: () => safely(
-                                                  context,
-                                                  () async {
-                                                    final path =
-                                                        m['_local_file']
-                                                            as String? ??
-                                                        await space.mediaFile(
-                                                          m['media_path']
-                                                              as String,
-                                                        );
-                                                    await SharePlus.instance.share(
-                                                      ShareParams(
-                                                        files: [
-                                                          XFile(
-                                                            path,
-                                                            name:
-                                                                m['file_name']
-                                                                    as String?,
-                                                            mimeType:
-                                                                m['mime_type']
-                                                                    as String?,
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
+                                                onPressed: () => safely(context, () async {
+                                                  final path =
+                                                      m['_local_file']
+                                                          as String? ??
+                                                      await space.mediaFile(
+                                                        m['media_path']
+                                                            as String,
+                                                      );
+                                                  await SharePlus.instance.share(
+                                                    ShareParams(
+                                                      files: [
+                                                        XFile(
+                                                          path,
+                                                          name:
+                                                              m['file_name']
+                                                                  as String?,
+                                                          mimeType:
+                                                              m['mime_type']
+                                                                  as String?,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }),
                                                 icon: const Icon(
                                                   Icons.description_outlined,
                                                 ),
@@ -1496,9 +1548,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                                                             : read
                                                             ? 'Read'
                                                             : 'Sent'}' : ''}',
-                                                  style: Theme.of(
-                                                    context,
-                                                  ).textTheme.labelSmall,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelSmall,
                                                 ),
                                                 if (mine &&
                                                     m['_pending'] != true)
@@ -1639,13 +1691,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           maxLines: 4,
                           maxLength: 8000,
                           textCapitalization: TextCapitalization.sentences,
-                          buildCounter:
-                              (
-                                _, {
-                                required currentLength,
-                                required isFocused,
-                                maxLength,
-                              }) => null,
+                          buildCounter: (
+                            _, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                           onChanged: (_) {
                             _typingDebounce?.cancel();
                             _typingDebounce = Timer(

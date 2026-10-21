@@ -1,0 +1,41 @@
+begin;
+insert into auth.users(id,email) values('11000000-0000-4000-8000-000000000001','us-ai-a@example.invalid'),('11000000-0000-4000-8000-000000000002','us-ai-b@example.invalid'),('11000000-0000-4000-8000-000000000003','us-ai-c@example.invalid');
+insert into public.couples(id,owner_id,partner_id) values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000002');
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000001',true);
+insert into public.ai_preferences(couple_id,user_id,enabled,share_history) values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000001',true,true);
+do $$ begin
+ begin insert into public.ai_preferences(couple_id,user_id,enabled) values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000002',true);raise exception 'Forged partner consent';exception when insufficient_privilege then null;end;
+ begin perform public.reserve_ai_request('22000000-0000-4000-8000-000000000001');raise exception 'Client bypassed quota';exception when insufficient_privilege then null;end;
+ begin insert into public.ai_answers(couple_id,requested_by,prompt,answer)values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000001','fake','forged');raise exception 'Client forged AI';exception when insufficient_privilege then null;end;
+end $$;
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000002',true);
+do $$begin if (select count(*) from public.ai_preferences where enabled)<>1 then raise exception 'Partner cannot see consent';end if;end $$;
+insert into public.ai_preferences(couple_id,user_id,enabled,share_history) values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000002',true,true);
+update public.ai_preferences set enabled=false,share_history=false where user_id='11000000-0000-4000-8000-000000000001';
+do $$ begin if not (select enabled from public.ai_preferences where user_id='11000000-0000-4000-8000-000000000001') then raise exception 'Partner changed owner permission';end if;end $$;
+update public.ai_preferences set share_history=false where user_id='11000000-0000-4000-8000-000000000002';
+do $$ begin if (select share_history from public.ai_preferences where user_id='11000000-0000-4000-8000-000000000002') then raise exception 'Revocation failed';end if;end $$;
+reset role;
+set local role service_role;
+do $$begin
+ if not public.reserve_ai_request('22000000-0000-4000-8000-000000000001') then raise exception 'First request denied';end if;
+ if public.reserve_ai_request('22000000-0000-4000-8000-000000000001') then raise exception 'Rapid request allowed';end if;
+ update private.ai_usage set requests=20,last_request=now()-interval '1 hour' where couple_id='22000000-0000-4000-8000-000000000001';
+ if public.reserve_ai_request('22000000-0000-4000-8000-000000000001') then raise exception 'Daily cap bypassed';end if;
+end $$;
+insert into public.ai_answers(couple_id,requested_by,prompt,answer) values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000001','test','test answer');
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000002',true);
+do $$begin if (select count(*) from public.ai_answers)<>1 then raise exception 'Partner cannot see answer';end if;end $$;
+select set_config('request.jwt.claim.sub','11000000-0000-4000-8000-000000000003',true);
+do $$begin
+ if exists(select 1 from public.ai_preferences) or exists(select 1 from public.ai_answers) then raise exception 'Third user data leak';end if;
+ begin insert into public.ai_preferences(couple_id,user_id,enabled)values('22000000-0000-4000-8000-000000000001','11000000-0000-4000-8000-000000000003',true);raise exception 'Third user consent created';exception when insufficient_privilege then null;end;
+end $$;
+reset role;
+delete from public.couples where id='22000000-0000-4000-8000-000000000001';
+do $$begin if exists(select 1 from private.ai_usage where couple_id='22000000-0000-4000-8000-000000000001') then raise exception 'Deletion left usage';end if;end $$;
+rollback;
+select 'PASS: consent ownership/revocation, partner access, forged AI rejection, third-account isolation, rate/daily limits, deletion cascade' result;

@@ -1,3 +1,5 @@
+import '../ai/ai_screen.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -34,6 +36,16 @@ class _MemoriesScreenState extends ConsumerState<MemoriesScreen> {
               MaterialPageRoute(
                 builder: (_) => MemoryComposer(
                   file: path,
+                  onSuggestCaption: (text) =>
+                      Navigator.of(context).push<String>(
+                        MaterialPageRoute(
+                          builder: (_) => AiScreen(
+                            space: space,
+                            initialTask: 'caption',
+                            initialText: text,
+                          ),
+                        ),
+                      ),
                   initialCollection: _collection,
                   collections: List.of(space.rows['memory_collections'] ?? []),
                   onCreateCollection: (title) async {

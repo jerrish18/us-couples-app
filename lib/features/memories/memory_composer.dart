@@ -24,7 +24,9 @@ class MemoryComposer extends StatefulWidget {
     required this.onCreateCollection,
     required this.onSave,
     this.initialCollection,
+    this.onSuggestCaption,
   });
+  final Future<String?> Function(String description)? onSuggestCaption;
   final String file;
   final List<Map<String, dynamic>> collections;
   final String? initialCollection;
@@ -208,6 +210,22 @@ class _MemoryComposerState extends State<MemoryComposer> {
                 hintText: 'What made this moment yours?',
               ),
             ),
+            if (widget.onSuggestCaption != null)
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Suggest a caption'),
+                  onPressed: _busy
+                      ? null
+                      : () async {
+                          final v = await widget.onSuggestCaption!(
+                            _caption.text,
+                          );
+                          if (v != null && mounted) _caption.text = v;
+                        },
+                ),
+              ),
             const SizedBox(height: UsTokens.s8),
             Card(
               child: ListTile(

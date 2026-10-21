@@ -1,3 +1,5 @@
+import '../ai/ai_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -40,7 +42,20 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   Widget build(BuildContext context) {
     final space = ref.watch(spaceProvider);
     return Scaffold(
-      appBar: const GlassAppBar(title: Text('Shared expenses')),
+      appBar: GlassAppBar(
+        title: const Text('Shared expenses'),
+        actions: [
+          IconButton(
+            tooltip: 'Draft expense with AI',
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AiScreen(space: space, initialTask: 'expense'),
+              ),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: GlassActionButton.extended(
         onPressed: () => _edit(space),
         icon: const Icon(Icons.add),

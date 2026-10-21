@@ -1,0 +1,568 @@
+{
+  "date": "2026-10-21",
+  "model": "openai/gpt-oss-120b",
+  "provider": "Groq",
+  "reasoning_effort": "medium",
+  "max_completion_tokens": 2000,
+  "synthetic_scenarios": 12,
+  "schema_and_output_validation_passed": 12,
+  "provider_latency_ms_median": 1455.5,
+  "provider_latency_ms_range": [
+    895,
+    2547
+  ],
+  "sampled_tokens": 21471,
+  "scope": "Synthetic English, Tamil and Tanglish requests covering all nine actions; not a statistical language benchmark. Responses include server-side suggestion fallback and date validation. Date answer prose is replaced in production with calculated-budget guidance.",
+  "language_review": {
+    "English": "Strongest tested option. Valid drafts and evidence handling in these samples.",
+    "Tamil": "Beta. Mostly understandable rewrites; register, word-game examples and poetic captions can be awkward or inaccurate.",
+    "Tanglish": "Beta. Can mix English, repeat suggestions, or use awkward pronouns. Always review."
+  },
+  "end_to_end": {
+    "checks": [
+      {
+        "name": "default_off",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "name": "both_consents_required",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "name": "real_endpoint_shared_answer",
+        "status": 200,
+        "pass": true,
+        "answer": "We decided to meet at the Blue Lotus cafe."
+      },
+      {
+        "name": "revoked_consent_blocks",
+        "status": 403,
+        "pass": true
+      },
+      {
+        "name": "outsider_isolated",
+        "status": 403,
+        "pass": true
+      }
+    ],
+    "couple_cleanup": true,
+    "users_cleanup": true
+  },
+  "raw_cases": [
+    {
+      "prompt_version": "v5-grounded",
+      "case": 0,
+      "task": "reply",
+      "language": "English",
+      "finish": "stop",
+      "output": {
+        "answer": "Here are three sweet, playful, and reassuring replies you can send.",
+        "suggestions": [
+          "I’m sending you a big hug through the phone—let’s chat when you’re ready, love.",
+          "Your tough day can wait while I think of your favorite smile. Call me whenever you feel up for it!",
+          "Take all the time you need, sweetie. I’ll be right here with a cozy chat when you’re ready."
+        ],
+        "source_ids": [
+          "m1"
+        ],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.100395333,
+        "prompt_tokens": 1186,
+        "prompt_time": 0.052370098,
+        "completion_tokens": 519,
+        "completion_time": 1.090084125,
+        "total_tokens": 1705,
+        "total_time": 1.142454223,
+        "completion_tokens_details": {
+          "reasoning_tokens": 378
+        }
+      },
+      "latency_ms": 1294
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 1,
+      "task": "rewrite",
+      "language": "Tamil",
+      "finish": "stop",
+      "output": {
+        "answer": "இன்று உன்னுடன் பேச முடியாததனால் கொஞ்சம் வருத்தம் இருக்கிறது. நாளை பேசலாமா?",
+        "suggestions": [
+          "இன்று உன்னுடன் பேச முடியாததால் சற்று வருத்தமாக இருக்கிறேன். நாளை பேசலாமா?",
+          "இன்று உன்னுடன் பேச முடியாமலிருந்தது மனதை சிதைக்கிறது, நாளை பேசலாமா?",
+          "இன்று உன்னுடன் பேச இயலாததனால் துக்கம், நாளை சந்தித்து பேசலாமா?"
+        ],
+        "source_ids": [],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.329203997,
+        "prompt_tokens": 1169,
+        "prompt_time": 0.048523338,
+        "completion_tokens": 403,
+        "completion_time": 0.843987069,
+        "total_tokens": 1572,
+        "total_time": 0.892510407,
+        "completion_tokens_details": {
+          "reasoning_tokens": 243
+        }
+      },
+      "latency_ms": 1119
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 2,
+      "task": "rewrite",
+      "language": "Tanglish",
+      "finish": "stop",
+      "output": {
+        "answer": "",
+        "suggestions": [
+          "Innaiku naan unna miss panren. Nee free-a irundha pesalama?",
+          "Innaiku unna miss panren. Nee free-a irundhaal, konjam pesalaam?",
+          "Innaiku naan unna think panren. Nee free-a irundha pesalama?"
+        ],
+        "source_ids": [],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.232341995,
+        "prompt_tokens": 1162,
+        "prompt_time": 0.035793986,
+        "completion_tokens": 637,
+        "completion_time": 1.352733209,
+        "total_tokens": 1799,
+        "total_time": 1.388527195,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 522
+        }
+      },
+      "latency_ms": 1676
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 3,
+      "task": "together",
+      "language": "Tamil",
+      "finish": "stop",
+      "output": {
+        "answer": "இருவரும் சேர்ந்து 'எழுத்து சங்கிலி' விளையாட்டு விளையாடலாம். ஒருவர் ஒரு எழுத்தை கூறி, அடுத்தவர் அந்த எழுத்தில் தொடங்கும் புதிய சொல் சொல்லும். இதை தொடர்ந்து, சொல்ல முடியாதவரை தொடரலாம். இது சுருக்கமான, வேடிக்கையான வார்த்தை விளையாட்டு!",
+        "suggestions": [],
+        "source_ids": [],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.092341852,
+        "prompt_tokens": 1157,
+        "prompt_time": 0.04834532,
+        "completion_tokens": 568,
+        "completion_time": 1.190914937,
+        "total_tokens": 1725,
+        "total_time": 1.239260257,
+        "completion_tokens_details": {
+          "reasoning_tokens": 435
+        }
+      },
+      "latency_ms": 1414
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 4,
+      "task": "summary",
+      "language": "Tanglish",
+      "finish": "stop",
+      "output": {
+        "answer": "Saturday 24 October 2026 5 PM Marina Beach la meet panrom. Dinner location still decide pananum.",
+        "suggestions": [],
+        "source_ids": [
+          "m1",
+          "m2"
+        ],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.246349359,
+        "prompt_tokens": 1237,
+        "prompt_time": 0.118404207,
+        "completion_tokens": 389,
+        "completion_time": 0.812821617,
+        "total_tokens": 1626,
+        "total_time": 0.931225824,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 303
+        }
+      },
+      "latency_ms": 1243
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 5,
+      "task": "plans",
+      "language": "English",
+      "finish": "stop",
+      "output": {
+        "answer": "Here’s a draft for your date on 24 Oct 2026 at Marina Beach.",
+        "suggestions": [],
+        "source_ids": [
+          "m1"
+        ],
+        "draft": {
+          "kind": "date",
+          "title": "Date at Marina Beach",
+          "starts_at": "2026-10-24T17:00:00+05:30",
+          "place": "Marina Beach",
+          "notes": "",
+          "outing": "",
+          "amount": 0,
+          "category": "",
+          "spent_on": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.145590659,
+        "prompt_tokens": 1193,
+        "prompt_time": 0.041981068,
+        "completion_tokens": 1049,
+        "completion_time": 2.268984321,
+        "total_tokens": 2242,
+        "total_time": 2.310965389,
+        "prompt_tokens_details": {
+          "cached_tokens": 256
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 882
+        }
+      },
+      "latency_ms": 2547
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 6,
+      "task": "search",
+      "language": "Tamil",
+      "finish": "stop",
+      "output": {
+        "answer": "நாம் இரவுக் உணவுக்கு ப்ளூ லோட்டஸ் கஃபேவை தேர்ந்தெடுத்தோம்.",
+        "suggestions": [],
+        "source_ids": [
+          "m1"
+        ],
+        "draft": {
+          "amount": 0,
+          "category": "",
+          "kind": "none",
+          "notes": "",
+          "outing": "",
+          "place": "",
+          "spent_on": "",
+          "starts_at": "",
+          "title": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.226352953,
+        "prompt_tokens": 1192,
+        "prompt_time": 0.053536919,
+        "completion_tokens": 577,
+        "completion_time": 1.214396364,
+        "total_tokens": 1769,
+        "total_time": 1.267933283,
+        "completion_tokens_details": {
+          "reasoning_tokens": 491
+        }
+      },
+      "latency_ms": 1541
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 7,
+      "task": "date",
+      "language": "Tanglish",
+      "finish": "stop",
+      "output": {
+        "answer": "Chennai-la rendu peruku INR 1500 budget-um 3 hours (180 minutes) time-um irukku. Ippa simple-aana plan kudukren:\n1. Marina Beach-la sandhikkalam – free, 30 minutes walk.\n2. Vada pav/chaat stall-kku snack – 200 INR total, 30 minutes.\n3. Semmozhi Poonga park visit – free, 30 minutes.\n4. Nearby café-la coffee – 500 INR total, 45 minutes.\n5. Ice‑cream treat – 200 INR total, 15 minutes.\nTravel‑waiting time 30 minutes add pannitu total 150 minutes, cost total ~900 INR, budget‑kulla. Innum time irundha, beach-la sunset watch panlaam or quick shopping, adha budget la add pannalaam.",
+        "suggestions": [],
+        "source_ids": [],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": [
+          {
+            "activity": "Marina Beach walk",
+            "estimated_cost": 0,
+            "minutes": 30
+          },
+          {
+            "activity": "Snack at local stall (vada pav/chaat)",
+            "estimated_cost": 200,
+            "minutes": 30
+          },
+          {
+            "activity": "Visit Semmozhi Poonga park",
+            "estimated_cost": 0,
+            "minutes": 30
+          },
+          {
+            "activity": "Coffee at nearby cafe",
+            "estimated_cost": 500,
+            "minutes": 45
+          },
+          {
+            "activity": "Ice‑cream treat",
+            "estimated_cost": 200,
+            "minutes": 15
+          }
+        ],
+        "budget": {
+          "total": 900,
+          "limit": 1500,
+          "total_minutes": 150,
+          "minutes_limit": 180
+        }
+      },
+      "usage": {
+        "queue_time": 0.167412606,
+        "prompt_tokens": 1182,
+        "prompt_time": 0.049688926,
+        "completion_tokens": 871,
+        "completion_time": 1.827524862,
+        "total_tokens": 2053,
+        "total_time": 1.8772137880000002,
+        "completion_tokens_details": {
+          "reasoning_tokens": 541
+        }
+      },
+      "latency_ms": 2114
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 8,
+      "task": "expense",
+      "language": "English",
+      "finish": "stop",
+      "output": {
+        "answer": "Expense drafted for dinner on 2026-10-20.",
+        "suggestions": [],
+        "source_ids": [],
+        "draft": {
+          "kind": "expense",
+          "title": "Dinner",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 850,
+          "spent_on": "2026-10-20",
+          "category": "Food",
+          "outing": "Date night"
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.088200883,
+        "prompt_tokens": 1154,
+        "prompt_time": 0.045882527,
+        "completion_tokens": 542,
+        "completion_time": 1.138328273,
+        "total_tokens": 1696,
+        "total_time": 1.1842108,
+        "completion_tokens_details": {
+          "reasoning_tokens": 460
+        }
+      },
+      "latency_ms": 1336
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 9,
+      "task": "caption",
+      "language": "Tamil",
+      "finish": "stop",
+      "output": {
+        "answer": "மெரினா கடற்கரையில் சூரிய அஸ்தமனத்தின் அழகை உணர்ந்த இரு காதலர்களின் நினைவு – 1. “மெரினா மாயம்: சாயல் அஸ்தமனம்”, 2. “காலையில் காதல், மாலை அஸ்தமனம்”, 3. “இரு இதயங்கள், ஒரே சூரியன்”",
+        "suggestions": [
+          "மெரினா கடற்கரையில் சூரிய அஸ்தமனத்தின் அழகை உணர்ந்த இரு காதலர்களின் நினைவு – 1. “மெரினா மாயம்: சாயல் அஸ்தமனம்”, 2. “காலையில் காதல், மாலை அஸ்தமனம்”, 3. “இரு இதயங்கள், ஒரே சூரியன்”"
+        ],
+        "source_ids": [],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.151401499,
+        "prompt_tokens": 1171,
+        "prompt_time": 0.053477377,
+        "completion_tokens": 596,
+        "completion_time": 1.242555333,
+        "total_tokens": 1767,
+        "total_time": 1.29603271,
+        "completion_tokens_details": {
+          "reasoning_tokens": 449
+        }
+      },
+      "latency_ms": 1497
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 10,
+      "task": "search",
+      "language": "English",
+      "finish": "stop",
+      "output": {
+        "answer": "Sorry, I couldn't find any mention of a restaurant in the conversation.",
+        "suggestions": [],
+        "source_ids": [],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.205181271,
+        "prompt_tokens": 1179,
+        "prompt_time": 0.119417414,
+        "completion_tokens": 241,
+        "completion_time": 0.508266451,
+        "total_tokens": 1420,
+        "total_time": 0.627683865,
+        "completion_tokens_details": {
+          "reasoning_tokens": 171
+        }
+      },
+      "latency_ms": 895
+    },
+    {
+      "prompt_version": "v5-grounded",
+      "case": 11,
+      "task": "plans",
+      "language": "Tanglish",
+      "finish": "stop",
+      "output": {
+        "answer": "Inga konjam info missing. Neenga hotel booking claim panra request irukku, aana exact date, budget, interests, activities pathi details kudunga. Appo naan proper plan ready pannalaam.",
+        "suggestions": [],
+        "source_ids": [
+          "m1"
+        ],
+        "draft": {
+          "kind": "none",
+          "title": "",
+          "starts_at": "",
+          "place": "",
+          "notes": "",
+          "amount": 0,
+          "spent_on": "",
+          "category": "",
+          "outing": ""
+        },
+        "itinerary": []
+      },
+      "usage": {
+        "queue_time": 0.248403282,
+        "prompt_tokens": 1192,
+        "prompt_time": 0.028890006,
+        "completion_tokens": 905,
+        "completion_time": 2.089074107,
+        "total_tokens": 2097,
+        "total_time": 2.117964113,
+        "prompt_tokens_details": {
+          "cached_tokens": 512
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 801
+        }
+      },
+      "latency_ms": 2457
+    }
+  ]
+}
