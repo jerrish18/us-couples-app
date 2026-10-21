@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseInput,boundedContext,validateOutput,dateBudget} from './logic.ts';
+import {parseInput,boundedContext,validateOutput,dateBudget,searchTerms} from './logic.ts';
 const id='10000000-0000-4000-8000-000000000001';
 const draft={kind:'none',title:'',starts_at:'',place:'',notes:'',amount:0,spent_on:'',category:'',outing:''};
 test('validates supported actions, consent context selections and language',()=>{
@@ -38,4 +38,10 @@ test('date costs are calculated rather than trusting an AI total',()=>{
  assert.equal(dateBudget(data,1500,180).total,1100);
  assert.throws(()=>dateBudget(data,1000,180));
  assert.throws(()=>dateBudget(data,1500,120));
+});
+
+test('recall keeps Tamil combining marks and removes English question filler',()=>{
+ assert.deepEqual(searchTerms('Which restaurant did we choose?'),['restaurant']);
+ assert.ok(searchTerms('நாம் எந்த உணவகம் தேர்ந்தெடுத்தோம்?').includes('உணவகம்'));
+ assert.ok(searchTerms('restaurant),couple_id.eq.forbidden').every(t=>/^[\p{L}\p{M}\p{N}]+$/u.test(t)));
 });

@@ -75,3 +75,9 @@ export function dateBudget(data:any,budget:number,minutes:number) {
   if(paise>Math.round(budget*100)||totalMinutes>minutes)throw Error('This itinerary exceeds your budget or time. Try generating a simpler plan.');
   return {total:paise/100,limit:budget,total_minutes:totalMinutes,minutes_limit:minutes};
 }
+
+export function searchTerms(prompt:string) {
+ const stop=new Set(['which','what','where','when','did','do','we','our','ours','on','the','a','an','is','was','were','have','has','had','decide','decided','choose','chosen','tell','me','about','find','past','conversation','conversations','please','namma','enna','enga','endha','eppo','pannom','நாம்','நம்ம','எந்த','என்ன','எங்கே','எப்போது']);
+ const all=prompt.match(/[\p{L}\p{M}\p{N}]+/gu)??[];
+ return [...new Set(all.filter(t=>t.length>1&&!stop.has(t.toLowerCase())))].slice(0,6);
+}

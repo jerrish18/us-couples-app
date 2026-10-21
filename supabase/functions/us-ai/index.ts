@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.3';
-import {parseInput,boundedContext,historyTasks,schema,validateOutput,dateBudget} from './logic.ts';
+import {parseInput,boundedContext,historyTasks,schema,validateOutput,dateBudget,searchTerms} from './logic.ts';
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Cache-Control':'no-store'};
 const json=(body:unknown,status=200)=>Response.json(body,{status,headers});
 Deno.serve(async(req:Request)=>{
@@ -32,7 +32,7 @@ Deno.serve(async(req:Request)=>{
    if(input.ids.length)query=query.in('id',input.ids);
    else if(input.task==='summary')query=query.gte('created_at',input.from!).lt('created_at',input.until!);
    else if(input.task==='search'){
-    const tokens=input.prompt.match(/[\p{L}\p{N}]+/gu)?.filter(t=>t.length>1).slice(0,6)??[];
+    const tokens=searchTerms(input.prompt);
     if(!tokens.length)return json({error:'Enter a word or phrase to find.'},400);
     query=query.or(tokens.map(t=>`body.ilike.%${t}%`).join(','));
    }
@@ -59,12 +59,17 @@ Deno.serve(async(req:Request)=>{
   if(!response.ok)return json({error:response.status===429?'Groq free quota is busy. Please try later.':'AI provider is unavailable. Try again later.'},response.status===429?429:502);
   const provider=await response.json();
   if(provider.choices?.[0]?.finish_reason!=='stop')return json({error:'The answer was cut short. Try a smaller request.'},502);
-  let result;try{result=validateOutput(JSON.parse(provider.choices[0].message.content),context);}catch{return json({error:'AI could not produce a valid answer. Try a smaller request.'},502);}
+  let result;try{const generated=JSON.parse(provider.choices[0].message.content);if(input.task==='date'&&generated.draft){generated.draft.kind='none';generated.draft.starts_at='';}result=validateOutput(generated,context);}catch{return json({error:'AI could not produce a valid answer. Try a smaller request.'},502);}
   // Check live consent and membership again after the provider responds.
   const {data:stillMember}=await client.from('couples').select('id').eq('id',couple.id).is('deleting_at',null).maybeSingle();
   if(!stillMember||!await consent())return json({error:'AI permission changed. This result was discarded.'},403);
-  if(!['reply','rewrite','caption'].includes(input.task))result.suggestions=[];
+  if(['reply','rewrite','caption'].includes(input.task)){
+   result.suggestions=[...new Set(result.suggestions.map((s:string)=>s.trim()).filter(Boolean))];
+   if(!result.suggestions.length&&result.answer.trim())result.suggestions=[result.answer.trim()];
+   if(!result.suggestions.length)return json({error:'AI returned no usable suggestions. Please try again.'},502);
+  }else result.suggestions=[];
   if(input.task==='plans')result.itinerary=[];
+  if(['plans','expense'].includes(input.task)&&result.draft.kind!=='none')result.answer=input.language==='Tamil'?'இது ஒரு வரைவு மட்டுமே. சரிபார்த்த பிறகு சேமிக்கலாம்.':input.language==='Tanglish'?'Idhu draft mattum dhaan. Check pannitu save pannalaam.':'This is a draft only. Review it before saving; nothing has been saved.';
   if(input.task==='date'){
    try{result.budget=dateBudget(result,input.budget,input.minutes);}catch(e){return json({error:(e as Error).message},502);}
    result.answer=input.language==='Tamil'?'இருவருக்கான டேட் திட்டம். செலவுகள் உத்தேசம்; இட விவரங்களைச் சரிபார்க்கவும்.':input.language==='Tanglish'?'Rendu perukkana date plan. Selavugal estimate dhaan; idathoda details-a check pannunga.':'A date plan for two. Costs are estimates; check venue details.';

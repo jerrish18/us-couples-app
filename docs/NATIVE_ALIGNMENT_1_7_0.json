@@ -1,0 +1,78 @@
+{
+  "sha256": "267e1b268f7b36f10d3fb9290f5901d0c221c29bcff6e5d3238890750198961f",
+  "checked_64bit_libraries": 12,
+  "libraries": [
+    {
+      "library": "lib/arm64-v8a/libapp.so",
+      "minimum_load_alignment": 65536,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/arm64-v8a/libdartjni.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/arm64-v8a/libdatastore_shared_counter.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/arm64-v8a/libflutter.so",
+      "minimum_load_alignment": 65536,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/arm64-v8a/libjingle_peerconnection_so.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/arm64-v8a/libsqlite3.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/x86_64/libapp.so",
+      "minimum_load_alignment": 65536,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/x86_64/libdartjni.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/x86_64/libdatastore_shared_counter.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/x86_64/libflutter.so",
+      "minimum_load_alignment": 65536,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/x86_64/libjingle_peerconnection_so.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    },
+    {
+      "library": "lib/x86_64/libsqlite3.so",
+      "minimum_load_alignment": 16384,
+      "zip_entry_aligned_16kb": true,
+      "stored": true
+    }
+  ]
+}
