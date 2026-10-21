@@ -1,0 +1,48 @@
+export const tasks = ['reply','rewrite','together','summary','plans','search','date','expense','caption'] as const;
+export type Task = typeof tasks[number];
+export const historyTasks = new Set<Task>(['reply','together','summary','plans','search']);
+export function parseInput(raw: any) {
+  if (!raw || !tasks.includes(raw.task)) throw Error('Choose a supported AI action.');
+  const task = raw.task as Task;
+  const prompt = typeof raw.prompt === 'string' ? raw.prompt.trim() : '';
+  if (!prompt || new TextEncoder().encode(prompt).length > 1500) throw Error('Enter up to 1,500 bytes of text.');
+  if (!['English','Tamil','Tanglish'].includes(raw.language)) throw Error('Choose a language.');
+  const ids = Array.isArray(raw.message_ids) ? [...new Set(raw.message_ids)] : [];
+  if (ids.length > 30 || ids.some(x => typeof x !== 'string' || !/^[a-f0-9-]{36}$/i.test(x))) throw Error('Select up to 30 saved messages.');
+  if (['reply','plans'].includes(task) && ids.length === 0) throw Error('Select a saved message first.');
+  let from: string | undefined, until: string | undefined;
+  if (task === 'summary') {
+    const start = Date.parse(raw.from), end = Date.parse(raw.until);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || end-start > 31*86400000) throw Error('Choose a range of up to 31 days.');
+    from = new Date(start).toISOString(); until = new Date(end).toISOString();
+  }
+  return {task,prompt,language:raw.language,ids,from,until};
+}
+export function boundedContext(rows: any[], maxBytes = 4500) {
+  const result: any[] = [];
+  for (const row of rows) {
+    const item = {id:row.id, text:String(row.body ?? '').slice(0,1600),at:row.created_at,speaker:row.speaker??'unknown'};
+    if (new TextEncoder().encode(JSON.stringify([...result,item])).length > maxBytes) break;
+    result.push(item);
+  }
+  return result;
+}
+export const schema = {
+  type:'object', additionalProperties:false,
+  required:['answer','suggestions','source_ids','draft'],
+  properties:{
+    answer:{type:'string'},suggestions:{type:'array',items:{type:'string'}},
+    source_ids:{type:'array',items:{type:'string'}},
+    draft:{type:'object',additionalProperties:false,
+      required:['kind','title','starts_at','place','notes','amount','spent_on','category','outing'],
+      properties:{kind:{type:'string',enum:['none','date','expense','todo']},title:{type:'string'},starts_at:{type:'string'},place:{type:'string'},notes:{type:'string'},amount:{type:'number'},spent_on:{type:'string'},category:{type:'string'},outing:{type:'string'}}}
+  }
+};
+export function validateOutput(data: any, context: any[]) {
+  if (!data || typeof data.answer !== 'string' || data.answer.length > 6000 || !Array.isArray(data.suggestions) || data.suggestions.length > 5 || data.suggestions.some((s:any)=>typeof s!=='string'||s.length>4000) || !Array.isArray(data.source_ids) || !data.draft) throw Error('AI returned an incomplete answer. Please try again.');
+  const valid = new Set(context.map(m=>m.id));
+  if (data.source_ids.some((id:any)=>!valid.has(id))) throw Error('AI cited a message outside the selected context.');
+  const d=data.draft;
+  if(!['none','date','expense','todo'].includes(d.kind) || typeof d.title!=='string' || d.title.length>120 || typeof d.notes!=='string' || d.notes.length>4000 || typeof d.place!=='string' || d.place.length>250 || !Number.isFinite(d.amount) || d.amount<0 || d.amount>9999999 || typeof d.spent_on!=='string' || typeof d.starts_at!=='string' || typeof d.category!=='string' || typeof d.outing!=='string') throw Error('AI returned an invalid draft.');
+  return data;
+}
