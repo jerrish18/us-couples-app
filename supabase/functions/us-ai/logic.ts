@@ -18,10 +18,19 @@ export function parseInput(raw: any) {
   }
   return {task,prompt,language:raw.language,ids,from,until};
 }
+export function textWithinBytes(text: string, maxBytes = 1200) {
+  let result = '', bytes = 0;
+  for (const character of text) {
+    const size = new TextEncoder().encode(character).length;
+    if (bytes + size > maxBytes) break;
+    result += character; bytes += size;
+  }
+  return result;
+}
 export function boundedContext(rows: any[], maxBytes = 4500) {
   const result: any[] = [];
   for (const row of rows) {
-    const item = {id:row.id, text:String(row.body ?? '').slice(0,1600),at:row.created_at,speaker:row.speaker??'unknown'};
+    const item = {id:row.id, text:textWithinBytes(String(row.body ?? '')),at:row.created_at,speaker:row.speaker??'unknown'};
     if (new TextEncoder().encode(JSON.stringify([...result,item])).length > maxBytes) break;
     result.push(item);
   }

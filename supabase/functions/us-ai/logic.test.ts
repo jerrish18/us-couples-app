@@ -13,7 +13,7 @@ test('Tamil UTF-8 requests and context have byte bounds',()=>{
  assert.throws(()=>parseInput({task:'rewrite',prompt:'அ'.repeat(501),language:'Tamil'}));
  const rows=Array.from({length:30},(_,i)=>({id:`${i}`,body:'அ'.repeat(1000),created_at:'2026-10-21'}));
  const context=boundedContext(rows);
- assert.ok(Buffer.byteLength(JSON.stringify(context))<=4500);assert.ok(context.length<30);
+ assert.ok(Buffer.byteLength(JSON.stringify(context))<=4500);assert.ok(context.length>0 && context.length<30);
 });
 test('summary range must be valid and bounded',()=>{
  for(const until of ['bad','2026-09-01','2026-12-01'])assert.throws(()=>parseInput({task:'summary',prompt:'Summarise',language:'English',from:'2026-10-01',until}));
