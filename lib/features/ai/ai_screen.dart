@@ -378,6 +378,9 @@ class _AiScreenState extends State<AiScreen> {
                   }),
           ),
           const SizedBox(height: 16),
+          const Text(
+            'Tamil and Tanglish are in beta. Review wording before using it.',
+          ),
           Wrap(
             spacing: 8,
             children: [

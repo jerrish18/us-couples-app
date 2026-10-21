@@ -7,7 +7,7 @@ out=Path(os.environ.get('US_VERIFICATION_DIR','verification'));out.mkdir(parents
 api_level=adb('shell','getprop','ro.build.version.sdk').strip()
 print('Installing the previous public release to verify an in-place upgrade',flush=True)
 previous=Path('/tmp/Us-previous.apk')
-with urllib.request.urlopen('https://github.com/jerrish18/us-couples-app/releases/download/v1.5.1/Us.apk',timeout=60) as response,previous.open('wb') as target:
+with urllib.request.urlopen('https://github.com/jerrish18/us-couples-app/releases/download/v1.6.0/Us.apk',timeout=60) as response,previous.open('wb') as target:
     while chunk:=response.read(1024*1024):target.write(chunk)
 assert 'Success' in adb('install','--no-streaming',str(previous))
 old_uid=adb('shell','pm','list','packages','-U','com.jerrish18.us').strip()

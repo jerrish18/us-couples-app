@@ -53,5 +53,11 @@ export function validateOutput(data: any, context: any[]) {
   if (data.source_ids.some((id:any)=>!valid.has(id))) throw Error('AI cited a message outside the selected context.');
   const d=data.draft;
   if(!['none','date','expense','todo'].includes(d.kind) || typeof d.title!=='string' || d.title.length>120 || typeof d.notes!=='string' || d.notes.length>4000 || typeof d.place!=='string' || d.place.length>250 || !Number.isFinite(d.amount) || d.amount<0 || d.amount>9999999 || typeof d.spent_on!=='string' || typeof d.starts_at!=='string' || typeof d.category!=='string' || typeof d.outing!=='string') throw Error('AI returned an invalid draft.');
+  if(d.kind!=='none' && !d.title.trim()) throw Error('AI draft needs a title.');
+  if(d.kind==='expense') {
+    const date=/^\d{4}-\d{2}-\d{2}$/.test(d.spent_on) ? new Date(d.spent_on+'T00:00:00Z') : null;
+    if(!date || !Number.isFinite(date.getTime()) || date.toISOString().slice(0,10)!==d.spent_on || d.amount<=0 || d.notes.length>1000 || d.outing.length>100 || !['Food','Travel','Shopping','Stay','Entertainment','Bills','Gifts','Other'].includes(d.category)) throw Error('AI returned an invalid expense date, amount or category.');
+  }
+  if(d.kind==='date' && (!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(d.starts_at) || !Number.isFinite(Date.parse(d.starts_at)))) throw Error('AI date draft needs an explicit valid time zone and time.');
   return data;
 }
