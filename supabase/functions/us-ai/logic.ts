@@ -16,7 +16,9 @@ export function parseInput(raw: any) {
     if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start || end-start > 31*86400000) throw Error('Choose a range of up to 31 days.');
     from = new Date(start).toISOString(); until = new Date(end).toISOString();
   }
-  return {task,prompt,language:raw.language,ids,from,until};
+  const budget=raw.budget ?? 1500, minutes=raw.minutes ?? 180;
+  if(task==='date' && (!Number.isFinite(budget)||budget<1||budget>100000||!Number.isInteger(minutes)||minutes<30||minutes>1440)) throw Error('Choose a budget from INR 1 to 100,000 and 30 to 1,440 minutes.');
+  return {task,prompt,language:raw.language,ids,from,until,budget,minutes};
 }
 export function textWithinBytes(text: string, maxBytes = 1200) {
   let result = '', bytes = 0;
@@ -38,8 +40,9 @@ export function boundedContext(rows: any[], maxBytes = 4500) {
 }
 export const schema = {
   type:'object', additionalProperties:false,
-  required:['answer','suggestions','source_ids','draft'],
+  required:['answer','suggestions','source_ids','draft','itinerary'],
   properties:{
+    itinerary:{type:'array',items:{type:'object',additionalProperties:false,required:['activity','estimated_cost','minutes'],properties:{activity:{type:'string'},estimated_cost:{type:'number'},minutes:{type:'integer'}}}},
     answer:{type:'string'},suggestions:{type:'array',items:{type:'string'}},
     source_ids:{type:'array',items:{type:'string'}},
     draft:{type:'object',additionalProperties:false,
@@ -60,4 +63,15 @@ export function validateOutput(data: any, context: any[]) {
   }
   if(d.kind==='date' && (!/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(d.starts_at) || !Number.isFinite(Date.parse(d.starts_at)))) throw Error('AI date draft needs an explicit valid time zone and time.');
   return data;
+}
+
+export function dateBudget(data:any,budget:number,minutes:number) {
+  if(!Array.isArray(data.itinerary)||!data.itinerary.length||data.itinerary.length>8)throw Error('Date planner needs a short itinerary.');
+  let paise=0,totalMinutes=0;
+  for(const item of data.itinerary){
+    if(typeof item.activity!=='string'||!item.activity.trim()||item.activity.length>300||!Number.isFinite(item.estimated_cost)||item.estimated_cost<0||item.estimated_cost>100000||!Number.isInteger(item.minutes)||item.minutes<1||item.minutes>1440)throw Error('Date planner returned invalid costs or times.');
+    paise+=Math.round(item.estimated_cost*100);totalMinutes+=item.minutes;
+  }
+  if(paise>Math.round(budget*100)||totalMinutes>minutes)throw Error('This itinerary exceeds your budget or time. Try generating a simpler plan.');
+  return {total:paise/100,limit:budget,total_minutes:totalMinutes,minutes_limit:minutes};
 }

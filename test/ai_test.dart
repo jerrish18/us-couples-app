@@ -26,6 +26,8 @@ class FakeAi extends UsAi {
     List<String> ids = const [],
     DateTime? from,
     DateTime? until,
+    double? budget,
+    int? minutes,
   }) async {
     requests++;
     requestedLanguage = language;
@@ -154,5 +156,38 @@ void main() {
           .onPressed,
       isNull,
     );
+  });
+  testWidgets('invalid date budget never calls the provider', (tester) async {
+    final space = fixtures.PreviewSpace(fixtures.PreviewSession()),
+        ai = FakeAi(fixtures.PreviewSpace(fixtures.PreviewSession()));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: AiScreen(
+          space: space,
+          service: ai,
+          initialTask: 'date',
+          initialText: 'A quiet date',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('ai-budget')),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('ai-budget')), '0');
+    tester.testTextInput.hide();
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('ai-generate')),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ai-generate')));
+    await tester.pumpAndSettle();
+    expect(ai.requests, 0);
+    expect(find.textContaining('Enter a budget'), findsOneWidget);
   });
 }

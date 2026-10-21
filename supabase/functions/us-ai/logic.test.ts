@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {parseInput,boundedContext,validateOutput} from './logic.ts';
+import {parseInput,boundedContext,validateOutput,dateBudget} from './logic.ts';
 const id='10000000-0000-4000-8000-000000000001';
 const draft={kind:'none',title:'',starts_at:'',place:'',notes:'',amount:0,spent_on:'',category:'',outing:''};
 test('validates supported actions, consent context selections and language',()=>{
@@ -31,4 +31,11 @@ test('expense and calendar drafts reject invalid dates and missing time zones',(
  assert.throws(()=>validateOutput({answer:'Draft',suggestions:[],source_ids:[],draft:{...expense,spent_on:'2026-02-30'}},[]));
  assert.equal(validateOutput({answer:'Draft',suggestions:[],source_ids:[],draft:{...expense,spent_on:'2026-10-20'}},[]).draft.amount,850);
  assert.throws(()=>validateOutput({answer:'Draft',suggestions:[],source_ids:[],draft:{...draft,kind:'date',title:'Walk',starts_at:'2026-10-24T17:00:00'}},[]));
+});
+
+test('date costs are calculated rather than trusting an AI total',()=>{
+ const data={itinerary:[{activity:'Coffee',estimated_cost:300,minutes:45},{activity:'Walk',estimated_cost:0,minutes:60},{activity:'Dinner',estimated_cost:800,minutes:60}]};
+ assert.equal(dateBudget(data,1500,180).total,1100);
+ assert.throws(()=>dateBudget(data,1000,180));
+ assert.throws(()=>dateBudget(data,1500,120));
 });

@@ -40,6 +40,8 @@ class _AiScreenState extends State<AiScreen> {
   );
   late String _task = widget.initialTask;
   String _language = 'English';
+  final _budget = TextEditingController(text: '1500'),
+      _minutes = TextEditingController(text: '180');
   late final Set<String> _ids = {
     if (widget.messageId != null) widget.messageId!,
   };
@@ -63,6 +65,8 @@ class _AiScreenState extends State<AiScreen> {
   @override
   void dispose() {
     _prompt.dispose();
+    _budget.dispose();
+    _minutes.dispose();
     super.dispose();
   }
 
@@ -115,6 +119,23 @@ class _AiScreenState extends State<AiScreen> {
   bool get _needsHistory =>
       ['reply', 'together', 'summary', 'plans', 'search'].contains(_task);
   Future<void> _ask() async {
+    if (_task == 'date') {
+      final budget = double.tryParse(_budget.text),
+          minutes = int.tryParse(_minutes.text);
+      if (budget == null ||
+          !budget.isFinite ||
+          budget < 1 ||
+          budget > 100000 ||
+          minutes == null ||
+          minutes < 30 ||
+          minutes > 1440) {
+        setState(
+          () => _error =
+              'Enter a budget from ₹1 to ₹100,000 and 30 to 1,440 minutes.',
+        );
+        return;
+      }
+    }
     setState(() {
       _busy = true;
       _error = null;
@@ -129,6 +150,8 @@ class _AiScreenState extends State<AiScreen> {
         ids: ['reply', 'plans'].contains(_task) ? _ids.toList() : [],
         from: _from,
         until: _until,
+        budget: double.tryParse(_budget.text),
+        minutes: int.tryParse(_minutes.text),
       );
       if (mounted) setState(() => _result = data);
     } on FunctionException catch (e) {
@@ -250,6 +273,15 @@ class _AiScreenState extends State<AiScreen> {
 
   Future<void> _saveDraft() async {
     final d = Map<String, dynamic>.from(_result!['draft'] as Map);
+    if (_task == 'date' && _result!['budget'] != null) {
+      d['kind'] = 'date';
+      if ('${d['title'] ?? ''}'.trim().isEmpty) d['title'] = 'Our date';
+      d['notes'] = [
+        for (final item in _result!['itinerary'] as List)
+          '${item['activity']} · ${item['minutes']} min · estimated INR ${item['estimated_cost']} for two',
+        'Estimated total INR ${_result!['budget']['total']}',
+      ].join('\n');
+    }
     if (d['kind'] == 'expense') {
       final initial = {
         'title': d['title'],
@@ -395,6 +427,27 @@ class _AiScreenState extends State<AiScreen> {
             ],
           ),
           const SizedBox(height: 16),
+          if (_task == 'date') ...[
+            TextField(
+              key: const Key('ai-budget'),
+              controller: _budget,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Total budget for both (INR)',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _minutes,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Available time in minutes (including travel)',
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (_task == 'summary') ...[
             ListTile(
               title: const Text('From'),
@@ -486,6 +539,18 @@ class _AiScreenState extends State<AiScreen> {
               '${result['answer']}',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
+            if (result['budget'] != null) ...[
+              for (final item in result['itinerary'] as List)
+                ListTile(
+                  title: Text('${item['activity']}'),
+                  subtitle: Text(
+                    '${item['minutes']} min · estimated ₹${item['estimated_cost']} for two',
+                  ),
+                ),
+              Text(
+                'Calculated total: ₹${result['budget']['total']} / ₹${result['budget']['limit']} · ${result['budget']['total_minutes']} / ${result['budget']['minutes_limit']} minutes',
+              ),
+            ],
             for (final suggestion in (result['suggestions'] as List? ?? []))
               Card(
                 child: Padding(
@@ -502,9 +567,15 @@ class _AiScreenState extends State<AiScreen> {
                   ),
                 ),
               ),
-            if (draft != null && draft['kind'] != 'none') ...[
+            if (draft != null &&
+                (draft['kind'] != 'none' ||
+                    (_task == 'date' && result['budget'] != null))) ...[
               const SizedBox(height: 12),
-              Text('Draft ${draft['kind']}: ${draft['title']}'),
+              Text(
+                _task == 'date'
+                    ? 'Draft date plan'
+                    : 'Draft ${draft['kind']}: ${draft['title']}',
+              ),
               Text('${draft['notes']}'),
               OutlinedButton(
                 onPressed: _busy || _saved ? null : _saveDraft,

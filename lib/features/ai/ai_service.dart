@@ -26,6 +26,8 @@ class UsAi {
     List<String> ids = const [],
     DateTime? from,
     DateTime? until,
+    double? budget,
+    int? minutes,
   }) async {
     final uid = space.session.userId, cid = space.session.coupleId;
     final response = await space.session.client.functions.invoke(
@@ -37,6 +39,8 @@ class UsAi {
         'message_ids': ids,
         'from': from?.toUtc().toIso8601String(),
         'until': until?.toUtc().toIso8601String(),
+        'budget': budget,
+        'minutes': minutes,
       },
     );
     if (uid != space.session.userId || cid != space.session.coupleId)
