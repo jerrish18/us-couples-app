@@ -75,10 +75,10 @@ Deno.serve(async(req:Request)=>{
    result.answer=input.language==='Tamil'?'இருவருக்கான டேட் திட்டம். செலவுகள் உத்தேசம்; இட விவரங்களைச் சரிபார்க்கவும்.':input.language==='Tanglish'?'Rendu perukkana date plan. Selavugal estimate dhaan; idathoda details-a check pannunga.':'A date plan for two. Costs are estimates; check venue details.';
   }
   const sources=context.filter(m=>result.source_ids.includes(m.id));
-  if(input.task==='together'){
+  if(input.publish){
    const {error}=await admin.from('ai_answers').insert({couple_id:couple.id,requested_by:user.id,prompt:input.prompt,answer:result.answer,sources});
    if(error)return json({error:'Could not publish the shared AI answer. Please retry.'},503);
   }
-  return json({...result,sources,coverage:`Used ${context.length} saved text messages, newest matches first (up to 30). Long messages or histories may be shortened. Attachments excluded.`,model:'openai/gpt-oss-120b'});
+  return json({...result,sources,published:input.publish,coverage:historyTasks.has(input.task)?`Used ${context.length} saved text messages, newest matches first (up to 30). Long messages or histories may be shortened. Attachments excluded.`:'Used only your request text. No chat history or attachments.',model:'openai/gpt-oss-120b'});
  }catch(e){return json({error:e instanceof DOMException?'AI timed out. Try a smaller request.':'AI could not finish. Please try again.'},503);}
 });

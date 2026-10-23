@@ -2,8 +2,10 @@ export const tasks = ['reply','rewrite','together','summary','plans','search','d
 export type Task = typeof tasks[number];
 export const historyTasks = new Set<Task>(['reply','together','summary','plans','search']);
 export function parseInput(raw: any) {
-  if (!raw || !tasks.includes(raw.task)) throw Error('Choose a supported AI action.');
-  const task = raw.task as Task;
+  // A separate wire action makes private drafting fail closed on older servers.
+  const action = raw?.task === 'ask' ? 'together' : raw?.task;
+  if (!raw || !tasks.includes(action)) throw Error('Choose a supported AI action.');
+  const task = action as Task;
   const prompt = typeof raw.prompt === 'string' ? raw.prompt.trim() : '';
   if (!prompt || new TextEncoder().encode(prompt).length > 1500) throw Error('Enter up to 1,500 bytes of text.');
   if (!['English','Tamil','Tanglish'].includes(raw.language)) throw Error('Choose a language.');
@@ -18,7 +20,10 @@ export function parseInput(raw: any) {
   }
   const budget=raw.budget ?? 1500, minutes=raw.minutes ?? 180;
   if(task==='date' && (!Number.isFinite(budget)||budget<1||budget>100000||!Number.isInteger(minutes)||minutes<30||minutes>1440)) throw Error('Choose a budget from INR 1 to 100,000 and 30 to 1,440 minutes.');
-  return {task,prompt,language:raw.language,ids,from,until,budget,minutes};
+  if(raw.publish !== undefined && typeof raw.publish !== 'boolean') throw Error('Choose whether to share the answer.');
+  // Older clients explicitly label together as Ask & share. New composers request a private draft.
+  const publish = task === 'together' && raw.task !== 'ask' && raw.publish !== false;
+  return {task,prompt,language:raw.language,ids,from,until,budget,minutes,publish};
 }
 export function textWithinBytes(text: string, maxBytes = 1200) {
   let result = '', bytes = 0;

@@ -45,3 +45,14 @@ test('recall keeps Tamil combining marks and removes English question filler',()
  assert.ok(searchTerms('நாம் எந்த உணவகம் தேர்ந்தெடுத்தோம்?').includes('உணவகம்'));
  assert.ok(searchTerms('restaurant),couple_id.eq.forbidden').every(t=>/^[\p{L}\p{M}\p{N}]+$/u.test(t)));
 });
+
+test('composer ask is always private while older explicit shared requests remain compatible',()=>{
+ const request={task:'ask',prompt:'A date idea?',language:'English'};
+ assert.equal(parseInput(request).task,'together');
+ assert.equal(parseInput(request).publish,false);
+ assert.equal(parseInput({...request,publish:true}).publish,false);
+ assert.equal(parseInput({...request,task:'together'}).publish,true);
+ assert.equal(parseInput({...request,task:'together',publish:false}).publish,false);
+ assert.equal(parseInput({...request,task:'rewrite',publish:true}).publish,false);
+ assert.throws(()=>parseInput({...request,publish:'false'}));
+});

@@ -152,6 +152,7 @@ class _AiScreenState extends State<AiScreen> {
         until: _until,
         budget: double.tryParse(_budget.text),
         minutes: int.tryParse(_minutes.text),
+        publish: _task == 'together',
       );
       if (mounted) setState(() => _result = data);
     } on FunctionException catch (e) {

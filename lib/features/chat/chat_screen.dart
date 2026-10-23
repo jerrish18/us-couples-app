@@ -1,4 +1,5 @@
-import '../ai/ai_screen.dart';
+import '../ai/ai_composer_panel.dart';
+import '../ai/ai_service.dart';
 import '../ai/shared_answers.dart';
 import '../../core/design.dart';
 
@@ -32,7 +33,8 @@ import 'video_bubble.dart';
 import '../calls/call_service.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({super.key, this.aiService});
+  final UsAi? aiService;
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
@@ -46,6 +48,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   int _searchGeneration = 0;
   List<Map<String, dynamic>>? _remoteMatches;
   bool _searchBusy = false;
+  bool _aiOpen = false;
+  String _aiTask = 'rewrite';
+  String? _aiMessageId;
+  int _aiPanelVersion = 0;
   StreamSubscription<dynamic>? _shares;
   bool _choosing = false;
   bool _recording = false,
@@ -126,19 +132,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       );
       return;
     }
+    final sentText = _text.text, sentReply = _reply;
+    if (file == null && sentText.trim().isEmpty) return;
     setState(() => _sending = true);
     try {
       await space.send(
-        _text.text,
+        sentText,
         file: file,
         kind: kind,
         replyTo: _reply?['id'] as String?,
         fileName: fileName,
         mime: mime,
       );
-      _text.clear();
+      if (!mounted) return;
+      if (_text.text == sentText) _text.clear();
       unawaited(space.typing(false));
-      if (mounted) setState(() => _reply = null);
+      setState(() {
+        if (_reply == sentReply) _reply = null;
+        _aiOpen = false;
+      });
       UsHaptics.confirm();
     } catch (_) {
       if (mounted) _notice('Could not save this message. Please try again.');
@@ -153,21 +165,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     String? messageId,
     String? prompt,
   }) async {
-    final original = _text.text;
-    final value = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => AiScreen(
-          space: space,
-          initialTask: task,
-          initialText: prompt ?? (task == 'rewrite' ? original : ''),
-          messageId: messageId,
-        ),
-      ),
-    );
-    if (value != null && mounted) {
-      _text.text = value;
-      _focus.requestFocus();
-    }
+    if (prompt != null)
+      _text.value = TextEditingValue(
+        text: prompt,
+        selection: TextSelection.collapsed(offset: prompt.length),
+      );
+    setState(() {
+      _aiOpen = true;
+      _aiTask = task;
+      _aiMessageId = messageId;
+      _aiPanelVersion++;
+      if (task == 'reply' && messageId != null) {
+        _reply = space.items.where((m) => m['id'] == messageId).firstOrNull;
+      }
+    });
+    _focus.unfocus();
   }
 
   void _notice(String text) {
@@ -424,7 +436,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     } catch (error) {
       if (mounted)
         _notice(
-          error is StateError ? '${error.message}' : 'Could not open the video camera or gallery. Check camera and microphone permissions.',
+          error is StateError
+              ? '${error.message}'
+              : 'Could not open the video camera or gallery. Check camera and microphone permissions.',
         );
     } finally {
       if (copy != null) {
@@ -555,7 +569,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     'pdf': 'application/pdf',
     'txt': 'text/plain',
     'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'docx':
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'xls': 'application/vnd.ms-excel',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   };
@@ -580,8 +595,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final folder = await Directory(
       '${root.path}/us-media/${space.session.coupleId}',
     ).create(recursive: true);
-    final copy = await File(path)
-        .copy('${folder.path}/${const Uuid().v4()}.$ext');
+    final copy = await File(
+      path,
+    ).copy('${folder.path}/${const Uuid().v4()}.$ext');
     await _send(
       space,
       file: copy.path,
@@ -767,7 +783,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                       ),
                   ],
                 ),
-              if (!deleted && !pending && m['body'] != null)
+              if (!deleted &&
+                  !pending &&
+                  m['body'] != null &&
+                  m['media_path'] == null &&
+                  m['media_kind'] == null)
                 ListTile(
                   leading: const Icon(Icons.auto_awesome),
                   title: const Text('Help me reply with AI'),
@@ -1038,706 +1058,792 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             .where((m) => m['pinned'] == true && m['deleted_at'] == null)
             .toList();
         final polls = space.rows['polls'] ?? [];
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final video in [false, true])
-                    ActionChip(
-                      avatar: Icon(
-                        video ? Icons.videocam_outlined : Icons.call_outlined,
-                        size: 18,
-                      ),
-                      label: Text(video ? 'Video call' : 'Voice call'),
-                      onPressed: () async {
-                        final service = ref.read(callProvider);
-                        await service.start(video: video);
-                        if (mounted && service.error != null) {
-                          _notice(service.error!);
-                          service.clearError();
-                        }
-                      },
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = _aiOpen || constraints.maxHeight < 520;
+            return Column(
+              children: [
+                if (!compact)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final video in [false, true])
+                          ActionChip(
+                            avatar: Icon(
+                              video
+                                  ? Icons.videocam_outlined
+                                  : Icons.call_outlined,
+                              size: 18,
+                            ),
+                            label: Text(video ? 'Video call' : 'Voice call'),
+                            onPressed: () async {
+                              final service = ref.read(callProvider);
+                              await service.start(video: video);
+                              if (mounted && service.error != null) {
+                                _notice(service.error!);
+                                service.clearError();
+                              }
+                            },
+                          ),
+                      ],
                     ),
-                ],
-              ),
-            ),
-            ListTile(
-              contentPadding: const EdgeInsets.fromLTRB(
-                UsTokens.s20,
-                UsTokens.s4,
-                UsTokens.s12,
-                UsTokens.s12,
-              ),
-              leading: Badge(
-                backgroundColor: space.partnerOnline
-                    ? UsColors.greenInk
-                    : colors.outline,
-                smallSize: 10,
-                child: CircleAvatar(
-                  backgroundColor: colors.primaryContainer,
-                  child: const Icon(Icons.favorite_outline),
-                ),
-              ),
-              title: Text(
-                space.me?['nickname'] as String? ??
-                    space.partner?['display_name'] as String? ??
-                    'Your person',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-              subtitle: Text(
-                space.partnerTyping
-                    ? 'typing…'
-                    : space.partnerOnline
-                    ? 'Here with you'
-                    : space.queued > 0
-                    ? '${space.queued} waiting to sync'
-                    : space.partner?['last_seen'] == null
-                    ? 'Your private conversation'
-                    : 'Last seen ${displayDate(space.partner!['last_seen'] as String)} ${displayTime(space.partner!['last_seen'] as String)}',
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: 'Search conversation',
-                    onPressed: () => setState(() => _searching = !_searching),
-                    icon: Icon(_searching ? Icons.close : Icons.search),
                   ),
-                  PopupMenuButton<String>(
-                    onSelected: (v) {
-                      if (v == 'ai') _openAi(space);
-                      if (v == 'stars') setState(() => _starred = !_starred);
-                      if (v == 'poll') _poll(space);
-                      if (v == 'sync') space.sync();
-                      if (v == 'polls')
-                        showGlassBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (c) => SafeArea(
-                            child: ListenableBuilder(
-                              listenable: space,
-                              builder: (c, _) => ListView(
-                                shrinkWrap: true,
-                                padding: const EdgeInsets.all(UsTokens.s20),
-                                children: [
-                                  Text(
-                                    'Our polls',
-                                    style: Theme.of(c).textTheme.titleLarge,
+                ListTile(
+                  dense: compact,
+                  contentPadding: const EdgeInsets.fromLTRB(
+                    UsTokens.s20,
+                    UsTokens.s4,
+                    UsTokens.s12,
+                    UsTokens.s12,
+                  ),
+                  leading: Badge(
+                    backgroundColor: space.partnerOnline
+                        ? UsColors.greenInk
+                        : colors.outline,
+                    smallSize: 10,
+                    child: CircleAvatar(
+                      backgroundColor: colors.primaryContainer,
+                      child: const Icon(Icons.favorite_outline),
+                    ),
+                  ),
+                  title: Text(
+                    space.me?['nickname'] as String? ??
+                        space.partner?['display_name'] as String? ??
+                        'Your person',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: compact
+                      ? null
+                      : Text(
+                          space.partnerTyping
+                              ? 'typing…'
+                              : space.partnerOnline
+                              ? 'Here with you'
+                              : space.queued > 0
+                              ? '${space.queued} waiting to sync'
+                              : space.partner?['last_seen'] == null
+                              ? 'Your private conversation'
+                              : 'Last seen ${displayDate(space.partner!['last_seen'] as String)} ${displayTime(space.partner!['last_seen'] as String)}',
+                        ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: 'Search conversation',
+                        onPressed: () =>
+                            setState(() => _searching = !_searching),
+                        icon: Icon(_searching ? Icons.close : Icons.search),
+                      ),
+                      PopupMenuButton<String>(
+                        onSelected: (v) {
+                          if (v == 'stars')
+                            setState(() => _starred = !_starred);
+                          if (v == 'poll') _poll(space);
+                          if (v == 'sync') space.sync();
+                          if (v == 'polls')
+                            showGlassBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (c) => SafeArea(
+                                child: ListenableBuilder(
+                                  listenable: space,
+                                  builder: (c, _) => ListView(
+                                    shrinkWrap: true,
+                                    padding: const EdgeInsets.all(UsTokens.s20),
+                                    children: [
+                                      Text(
+                                        'Our polls',
+                                        style: Theme.of(c).textTheme.titleLarge,
+                                      ),
+                                      if (polls.isEmpty)
+                                        const Text(
+                                          'Create a poll from the chat menu.',
+                                        ),
+                                      ...polls.map((p) => _pollCard(space, p)),
+                                    ],
                                   ),
-                                  if (polls.isEmpty)
-                                    const Text(
-                                      'Create a poll from the chat menu.',
-                                    ),
-                                  ...polls.map((p) => _pollCard(space, p)),
-                                ],
+                                ),
                               ),
+                            );
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'stars',
+                            child: Text(
+                              _starred
+                                  ? 'Show all messages'
+                                  : 'Starred messages',
                             ),
                           ),
-                        );
-                    },
-                    itemBuilder: (_) => [
-                      const PopupMenuItem(value: 'ai', child: Text('Us AI ✨')),
-                      PopupMenuItem(
-                        value: 'stars',
-                        child: Text(
-                          _starred ? 'Show all messages' : 'Starred messages',
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'poll',
-                        child: Text('Create a poll'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'polls',
-                        child: Text('Our polls'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'sync',
-                        child: Text('Retry sending'),
+                          const PopupMenuItem(
+                            value: 'poll',
+                            child: Text('Create a poll'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'polls',
+                            child: Text('Our polls'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'sync',
+                            child: Text('Retry sending'),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-            if (_searching)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  UsTokens.s16,
-                  UsTokens.s0,
-                  UsTokens.s16,
-                  UsTokens.s8,
                 ),
-                child: TextField(
-                  controller: _search,
-                  autofocus: true,
-                  onChanged: (_) {
-                    setState(() {});
-                    _find(space);
-                  },
-                  maxLength: 100,
-                  buildCounter: (
-                    _, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => null,
-                  decoration: const InputDecoration(
-                    hintText: 'Search messages or documents',
-                    prefixIcon: Icon(Icons.search),
-                  ),
-                ),
-              ),
-            if (_searchBusy) const LinearProgressIndicator(minHeight: 2),
-            if (_starred)
-              const Padding(
-                padding: EdgeInsets.all(UsTokens.s8),
-                child: Text('★ Your starred messages'),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ActionChip(
-                  avatar: const Icon(Icons.auto_awesome, size: 18),
-                  label: const Text('Us AI · replies, plans & more'),
-                  onPressed: () => _openAi(
-                    space,
-                    task: _text.text.trim().isEmpty ? 'together' : 'rewrite',
-                  ),
-                ),
-              ),
-            ),
-            SharedAiAnswers(space: space),
-            if (pins.isNotEmpty)
-              SizedBox(
-                height: UsTokens.s44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: UsTokens.s16),
-                  children: pins
-                      .map(
-                        (m) => Padding(
-                          padding: const EdgeInsets.only(right: UsTokens.s8),
-                          child: ActionChip(
-                            avatar: const Icon(
-                              Icons.push_pin,
-                              size: UsTokens.s16,
-                            ),
-                            label: SizedBox(
-                              width: UsTokens.s152,
-                              child: Text(
-                                m['body'] as String? ?? 'Pinned attachment',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            onPressed: () => _actions(space, m),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-              ),
-            Expanded(
-              child: messages.isEmpty
-                  ? Center(
-                      child: EmptyCard(
-                        _searching || _starred
-                            ? 'Nothing here yet'
-                            : 'Say something sweet',
-                        _searching
-                            ? 'Try another word.'
-                            : 'Your conversation begins here.',
-                        icon: Icons.chat_bubble_outline,
-                      ),
-                    )
-                  : ListView.builder(
-                      controller: _scroll,
-                      reverse: true,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: UsTokens.s16,
-                        vertical: UsTokens.s12,
-                      ),
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-                        final m = messages[messages.length - index - 1],
-                            mine = m['sender_id'] == space.session.userId,
-                            deleted = m['deleted_at'] != null;
-                        _read(space, m);
-                        final reacts = (space.rows['reactions'] ?? [])
-                            .where((r) => r['message_id'] == m['id'])
-                            .map((r) => r['emoji'] ?? '❤️')
-                            .join(' ');
-                        final read = states.any(
-                              (s) =>
-                                  s['message_id'] == m['id'] &&
-                                  s['user_id'] == space.session.partnerId &&
-                                  s['read_at'] != null,
-                            ),
-                            replied = space.items
-                                .where((r) => r['id'] == m['reply_to'])
-                                .firstOrNull;
-                        final older = index + 1 < messages.length
-                            ? messages[messages.length - index - 2]
-                            : null;
-                        final day = '${m['created_at']}'.substring(0, 10);
-                        final showDay =
-                            older == null ||
-                            '${older['created_at']}'.substring(0, 10) != day;
-                        final text = m['body'] as String? ?? '';
-                        final link = RegExp(r'https?://[^\s<>]+')
-                            .firstMatch(text)
-                            ?.group(0);
-                        return Column(
-                          children: [
-                            if (showDay)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: UsTokens.s16,
-                                ),
-                                child: Text(
-                                  displayDate(day),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium,
-                                ),
-                              ),
-                            Dismissible(
-                              key: ValueKey(m['id']),
-                              direction: DismissDirection.startToEnd,
-                              confirmDismiss: (_) async {
-                                if (!deleted) {
-                                  HapticFeedback.selectionClick();
-                                  setState(() => _reply = m);
-                                  _focus.requestFocus();
-                                }
-                                return false;
-                              },
-                              background: const Align(
-                                alignment: AlignmentDirectional.centerStart,
-                                child: Icon(Icons.reply),
-                              ),
-                              child: Align(
-                                alignment: mine
-                                    ? AlignmentDirectional.centerEnd
-                                    : AlignmentDirectional.centerStart,
-                                child: ConstrainedBox(
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.sizeOf(context).width * .82,
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: UsTokens.s8,
-                                    ),
-                                    child: GestureDetector(
-                                      onLongPress: () => _actions(space, m),
-                                      onDoubleTap:
-                                          deleted || m['_pending'] == true
-                                          ? null
-                                          : () => safely(
-                                              context,
-                                              () => space.react(
-                                                m['id'] as String,
-                                              ),
-                                            ),
-                                      child: MessageSurface(
-                                        mine: mine,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            if (m['reply_to'] != null)
-                                              Container(
-                                                padding: const EdgeInsets.all(
-                                                  UsTokens.s8,
-                                                ),
-                                                margin: const EdgeInsets.only(
-                                                  bottom: UsTokens.s8,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: colors.surface
-                                                      .withValues(alpha: .45),
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        UsTokens.s8,
-                                                      ),
-                                                  border: Border(
-                                                    left: BorderSide(
-                                                      color: colors.primary,
-                                                      width: UsTokens.s4,
-                                                    ),
-                                                  ),
-                                                ),
-                                                child: Text(
-                                                  replied?['body'] as String? ??
-                                                      'Attachment',
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            if (!deleted &&
-                                                m['media_kind'] == 'photo')
-                                              GestureDetector(
-                                                onTap: () => showGlassDialog<void>(
-                                                  context: context,
-                                                  builder: (c) => Dialog.fullscreen(
-                                                    child: Scaffold(
-                                                      appBar: GlassAppBar(
-                                                        title: const Text(
-                                                          'Your photo',
-                                                        ),
-                                                      ),
-                                                      body: Center(
-                                                        child: InteractiveViewer(
-                                                          maxScale: 5,
-                                                          child: Hero(
-                                                            tag:
-                                                                'message-${m['id']}',
-                                                            child: PrivatePhoto(
-                                                              space,
-                                                              m['media_path']
-                                                                  as String,
-                                                              localFile:
-                                                                  m['_local_file']
-                                                                      as String?,
-                                                              height:
-                                                                  MediaQuery.sizeOf(
-                                                                    c,
-                                                                  ).height *
-                                                                  .7,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                child: Hero(
-                                                  tag: 'message-${m['id']}',
-                                                  child: PrivatePhoto(
-                                                    space,
-                                                    m['media_path'] as String,
-                                                    localFile:
-                                                        m['_local_file']
-                                                            as String?,
-                                                  ),
-                                                ),
-                                              ),
-                                            if (!deleted &&
-                                                m['media_kind'] == 'video')
-                                              VideoBubble(
-                                                space: space,
-                                                message: m,
-                                              ),
-                                            if (m['deleted_at'] == null &&
-                                                m['media_kind'] == 'voice')
-                                              VoiceBubble(
-                                                key: ValueKey(
-                                                  'voice-${m['id']}',
-                                                ),
-                                                space: space,
-                                                message: m,
-                                              ),
-                                            if (!deleted &&
-                                                m['media_kind'] == 'file' &&
-                                                !isMusicDedication(m))
-                                              TextButton.icon(
-                                                onPressed: () => safely(context, () async {
-                                                  final path =
-                                                      m['_local_file']
-                                                          as String? ??
-                                                      await space.mediaFile(
-                                                        m['media_path']
-                                                            as String,
-                                                      );
-                                                  await SharePlus.instance.share(
-                                                    ShareParams(
-                                                      files: [
-                                                        XFile(
-                                                          path,
-                                                          name:
-                                                              m['file_name']
-                                                                  as String?,
-                                                          mimeType:
-                                                              m['mime_type']
-                                                                  as String?,
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  );
-                                                }),
-                                                icon: const Icon(
-                                                  Icons.description_outlined,
-                                                ),
-                                                label: Text(
-                                                  '${m['file_name'] ?? 'Document'}\n${((m['file_size'] as num? ?? 0) / 1024).round()} KB · Tap to open or save',
-                                                ),
-                                              ),
-                                            if (!deleted &&
-                                                isMusicDedication(m))
-                                              MusicDedicationCard(
-                                                key: ValueKey(
-                                                  'music-${m['id']}',
-                                                ),
-                                                space: space,
-                                                message: m,
-                                              ),
-                                            if (text.isNotEmpty)
-                                              Text(
-                                                text,
-                                                style: TextStyle(
-                                                  fontSize: UsTokens.s16,
-                                                  height: 1.4,
-                                                  fontStyle: deleted
-                                                      ? FontStyle.italic
-                                                      : null,
-                                                  color: deleted
-                                                      ? colors.onSurfaceVariant
-                                                      : null,
-                                                ),
-                                              ),
-                                            if (link != null && !deleted)
-                                              TextButton.icon(
-                                                onPressed: () => launchUrl(
-                                                  Uri.parse(link),
-                                                  mode: LaunchMode
-                                                      .externalApplication,
-                                                ),
-                                                icon: const Icon(
-                                                  Icons.open_in_new,
-                                                  size: UsTokens.s16,
-                                                ),
-                                                label: const Text('Open link'),
-                                              ),
-                                            if (reacts.isNotEmpty)
-                                              Padding(
-                                                padding: const EdgeInsets.only(
-                                                  top: UsTokens.s4,
-                                                ),
-                                                child: Text(
-                                                  reacts,
-                                                  style: const TextStyle(
-                                                    fontSize: UsTokens.font18,
-                                                  ),
-                                                ),
-                                              ),
-                                            const SizedBox(height: UsTokens.s4),
-                                            Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                if (stars.contains(m['id']))
-                                                  const Icon(
-                                                    Icons.star,
-                                                    size: UsTokens.s12,
-                                                  ),
-                                                if (m['pinned'] == true)
-                                                  const Icon(
-                                                    Icons.push_pin,
-                                                    size: UsTokens.s12,
-                                                  ),
-                                                Text(
-                                                  '${displayTime(m['created_at'] as String)}${m['edited_at'] != null ? ' · edited' : ''}${mine ? ' · ${m['_pending'] == true
-                                                            ? 'Waiting'
-                                                            : read
-                                                            ? 'Read'
-                                                            : 'Sent'}' : ''}',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .labelSmall,
-                                                ),
-                                                if (mine &&
-                                                    m['_pending'] != true)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.only(
-                                                          left: UsTokens.s4,
-                                                        ),
-                                                    child: Icon(
-                                                      read
-                                                          ? Icons.done_all
-                                                          : Icons.done,
-                                                      size: UsTokens.s12,
-                                                      color: read
-                                                          ? colors.primary
-                                                          : colors
-                                                                .onSurfaceVariant,
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
+                if (_searching)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      UsTokens.s16,
+                      UsTokens.s0,
+                      UsTokens.s16,
+                      UsTokens.s8,
+                    ),
+                    child: TextField(
+                      controller: _search,
+                      autofocus: true,
+                      onChanged: (_) {
+                        setState(() {});
+                        _find(space);
                       },
-                    ),
-            ),
-            if (_inbound.isNotEmpty)
-              Material(
-                color: colors.secondaryContainer,
-                child: ListTile(
-                  title: Text('${_inbound.length} item(s) shared to Us'),
-                  subtitle: const Text(
-                    'Review text as a draft, or send selected photos/documents to your person.',
-                  ),
-                  leading: IconButton(
-                    tooltip: 'Discard incoming share',
-                    onPressed: () {
-                      ShareInbox.clear();
-                      setState(() => _inbound = []);
-                    },
-                    icon: const Icon(Icons.close),
-                  ),
-                  trailing: TextButton(
-                    onPressed: _sending
-                        ? null
-                        : () => safely(context, () => _shared(space)),
-                    child: Text(
-                      _inbound.every(
-                            (f) =>
-                                f.type == SharedMediaType.text ||
-                                f.type == SharedMediaType.url,
-                          )
-                          ? 'Add to draft'
-                          : 'Send attachments',
-                    ),
-                  ),
-                ),
-              ),
-            if (_reply != null)
-              ListTile(
-                dense: true,
-                leading: const Icon(Icons.reply),
-                title: const Text('Replying to'),
-                subtitle: Text(
-                  _reply!['body'] as String? ?? 'Attachment',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: IconButton(
-                  onPressed: () => setState(() => _reply = null),
-                  icon: const Icon(Icons.close),
-                ),
-              ),
-            if (_recording)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.fiber_manual_record,
-                    color: UsColors.danger,
-                    size: UsTokens.s12,
-                  ),
-                  const Text(' Recording · up to 3 minutes'),
-                  TextButton(
-                    onPressed: () async {
-                      await _recorder.cancel();
-                      _recordLimit?.cancel();
-                      if (mounted) setState(() => _recording = false);
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                ],
-              ),
-            SafeArea(
-              top: false,
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  UsTokens.s8,
-                  UsTokens.s8,
-                  UsTokens.s8,
-                  UsTokens.s8,
-                ),
-                child: GlassCard(
-                  blur: true,
-                  radius: UsTokens.s36,
-                  padding: const EdgeInsets.all(UsTokens.s4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        tooltip: 'Add attachment',
-                        onPressed: _sending || _recording || _choosing
-                            ? null
-                            : () => _attachments(space),
-                        icon: const Icon(Icons.add_circle_outline),
-                      ),
-                      IconButton(
-                        tooltip: 'Camera',
-                        onPressed: _sending || _recording || _choosing
-                            ? null
-                            : () => _camera(space),
-                        icon: const Icon(Icons.camera_alt_outlined),
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _text,
-                          focusNode: _focus,
-                          minLines: 1,
-                          maxLines: 4,
-                          maxLength: 8000,
-                          textCapitalization: TextCapitalization.sentences,
-                          buildCounter: (
+                      maxLength: 100,
+                      buildCounter:
+                          (
                             _, {
                             required currentLength,
                             required isFocused,
                             maxLength,
                           }) => null,
-                          onChanged: (_) {
-                            _typingDebounce?.cancel();
-                            _typingDebounce = Timer(
-                              const Duration(milliseconds: 200),
-                              () => space.typing(_text.text.isNotEmpty),
+                      decoration: const InputDecoration(
+                        hintText: 'Search messages or documents',
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                    ),
+                  ),
+                if (_searchBusy) const LinearProgressIndicator(minHeight: 2),
+                if (_starred)
+                  const Padding(
+                    padding: EdgeInsets.all(UsTokens.s8),
+                    child: Text('★ Your starred messages'),
+                  ),
+                if (!compact) SharedAiAnswers(space: space),
+                if (pins.isNotEmpty && !compact)
+                  SizedBox(
+                    height: UsTokens.s44,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: UsTokens.s16,
+                      ),
+                      children: pins
+                          .map(
+                            (m) => Padding(
+                              padding: const EdgeInsets.only(
+                                right: UsTokens.s8,
+                              ),
+                              child: ActionChip(
+                                avatar: const Icon(
+                                  Icons.push_pin,
+                                  size: UsTokens.s16,
+                                ),
+                                label: SizedBox(
+                                  width: UsTokens.s152,
+                                  child: Text(
+                                    m['body'] as String? ?? 'Pinned attachment',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                onPressed: () => _actions(space, m),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ),
+                Expanded(
+                  child: messages.isEmpty
+                      ? Center(
+                          child: EmptyCard(
+                            _searching || _starred
+                                ? 'Nothing here yet'
+                                : 'Say something sweet',
+                            _searching
+                                ? 'Try another word.'
+                                : 'Your conversation begins here.',
+                            icon: Icons.chat_bubble_outline,
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scroll,
+                          reverse: true,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: UsTokens.s16,
+                            vertical: UsTokens.s12,
+                          ),
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            final m = messages[messages.length - index - 1],
+                                mine = m['sender_id'] == space.session.userId,
+                                deleted = m['deleted_at'] != null;
+                            _read(space, m);
+                            final reacts = (space.rows['reactions'] ?? [])
+                                .where((r) => r['message_id'] == m['id'])
+                                .map((r) => r['emoji'] ?? '❤️')
+                                .join(' ');
+                            final read = states.any(
+                                  (s) =>
+                                      s['message_id'] == m['id'] &&
+                                      s['user_id'] == space.session.partnerId &&
+                                      s['read_at'] != null,
+                                ),
+                                replied = space.items
+                                    .where((r) => r['id'] == m['reply_to'])
+                                    .firstOrNull;
+                            final older = index + 1 < messages.length
+                                ? messages[messages.length - index - 2]
+                                : null;
+                            final day = '${m['created_at']}'.substring(0, 10);
+                            final showDay =
+                                older == null ||
+                                '${older['created_at']}'.substring(0, 10) !=
+                                    day;
+                            final text = m['body'] as String? ?? '';
+                            final link = RegExp(
+                              r'https?://[^\s<>]+',
+                            ).firstMatch(text)?.group(0);
+                            return Column(
+                              children: [
+                                if (showDay)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: UsTokens.s16,
+                                    ),
+                                    child: Text(
+                                      displayDate(day),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelMedium,
+                                    ),
+                                  ),
+                                Dismissible(
+                                  key: ValueKey(m['id']),
+                                  direction: DismissDirection.startToEnd,
+                                  confirmDismiss: (_) async {
+                                    if (!deleted) {
+                                      HapticFeedback.selectionClick();
+                                      setState(() => _reply = m);
+                                      _focus.requestFocus();
+                                    }
+                                    return false;
+                                  },
+                                  background: const Align(
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: Icon(Icons.reply),
+                                  ),
+                                  child: Align(
+                                    alignment: mine
+                                        ? AlignmentDirectional.centerEnd
+                                        : AlignmentDirectional.centerStart,
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.sizeOf(context).width *
+                                            .82,
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: UsTokens.s8,
+                                        ),
+                                        child: GestureDetector(
+                                          onLongPress: () => _actions(space, m),
+                                          onDoubleTap:
+                                              deleted || m['_pending'] == true
+                                              ? null
+                                              : () => safely(
+                                                  context,
+                                                  () => space.react(
+                                                    m['id'] as String,
+                                                  ),
+                                                ),
+                                          child: MessageSurface(
+                                            mine: mine,
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                if (m['reply_to'] != null)
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                          UsTokens.s8,
+                                                        ),
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                          bottom: UsTokens.s8,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: colors.surface
+                                                          .withValues(
+                                                            alpha: .45,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            UsTokens.s8,
+                                                          ),
+                                                      border: Border(
+                                                        left: BorderSide(
+                                                          color: colors.primary,
+                                                          width: UsTokens.s4,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      replied?['body']
+                                                              as String? ??
+                                                          'Attachment',
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                if (!deleted &&
+                                                    m['media_kind'] == 'photo')
+                                                  GestureDetector(
+                                                    onTap: () => showGlassDialog<void>(
+                                                      context: context,
+                                                      builder: (c) => Dialog.fullscreen(
+                                                        child: Scaffold(
+                                                          appBar: GlassAppBar(
+                                                            title: const Text(
+                                                              'Your photo',
+                                                            ),
+                                                          ),
+                                                          body: Center(
+                                                            child: InteractiveViewer(
+                                                              maxScale: 5,
+                                                              child: Hero(
+                                                                tag:
+                                                                    'message-${m['id']}',
+                                                                child: PrivatePhoto(
+                                                                  space,
+                                                                  m['media_path']
+                                                                      as String,
+                                                                  localFile:
+                                                                      m['_local_file']
+                                                                          as String?,
+                                                                  height:
+                                                                      MediaQuery.sizeOf(
+                                                                        c,
+                                                                      ).height *
+                                                                      .7,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    child: Hero(
+                                                      tag: 'message-${m['id']}',
+                                                      child: PrivatePhoto(
+                                                        space,
+                                                        m['media_path']
+                                                            as String,
+                                                        localFile:
+                                                            m['_local_file']
+                                                                as String?,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                if (!deleted &&
+                                                    m['media_kind'] == 'video')
+                                                  VideoBubble(
+                                                    space: space,
+                                                    message: m,
+                                                  ),
+                                                if (m['deleted_at'] == null &&
+                                                    m['media_kind'] == 'voice')
+                                                  VoiceBubble(
+                                                    key: ValueKey(
+                                                      'voice-${m['id']}',
+                                                    ),
+                                                    space: space,
+                                                    message: m,
+                                                  ),
+                                                if (!deleted &&
+                                                    m['media_kind'] == 'file' &&
+                                                    !isMusicDedication(m))
+                                                  TextButton.icon(
+                                                    onPressed: () => safely(
+                                                      context,
+                                                      () async {
+                                                        final path =
+                                                            m['_local_file']
+                                                                as String? ??
+                                                            await space
+                                                                .mediaFile(
+                                                                  m['media_path']
+                                                                      as String,
+                                                                );
+                                                        await SharePlus.instance.share(
+                                                          ShareParams(
+                                                            files: [
+                                                              XFile(
+                                                                path,
+                                                                name:
+                                                                    m['file_name']
+                                                                        as String?,
+                                                                mimeType:
+                                                                    m['mime_type']
+                                                                        as String?,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                    icon: const Icon(
+                                                      Icons
+                                                          .description_outlined,
+                                                    ),
+                                                    label: Text(
+                                                      '${m['file_name'] ?? 'Document'}\n${((m['file_size'] as num? ?? 0) / 1024).round()} KB · Tap to open or save',
+                                                    ),
+                                                  ),
+                                                if (!deleted &&
+                                                    isMusicDedication(m))
+                                                  MusicDedicationCard(
+                                                    key: ValueKey(
+                                                      'music-${m['id']}',
+                                                    ),
+                                                    space: space,
+                                                    message: m,
+                                                  ),
+                                                if (text.isNotEmpty)
+                                                  Text(
+                                                    text,
+                                                    style: TextStyle(
+                                                      fontSize: UsTokens.s16,
+                                                      height: 1.4,
+                                                      fontStyle: deleted
+                                                          ? FontStyle.italic
+                                                          : null,
+                                                      color: deleted
+                                                          ? colors
+                                                                .onSurfaceVariant
+                                                          : null,
+                                                    ),
+                                                  ),
+                                                if (link != null && !deleted)
+                                                  TextButton.icon(
+                                                    onPressed: () => launchUrl(
+                                                      Uri.parse(link),
+                                                      mode: LaunchMode
+                                                          .externalApplication,
+                                                    ),
+                                                    icon: const Icon(
+                                                      Icons.open_in_new,
+                                                      size: UsTokens.s16,
+                                                    ),
+                                                    label: const Text(
+                                                      'Open link',
+                                                    ),
+                                                  ),
+                                                if (reacts.isNotEmpty)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          top: UsTokens.s4,
+                                                        ),
+                                                    child: Text(
+                                                      reacts,
+                                                      style: const TextStyle(
+                                                        fontSize:
+                                                            UsTokens.font18,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                const SizedBox(
+                                                  height: UsTokens.s4,
+                                                ),
+                                                Row(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    if (stars.contains(m['id']))
+                                                      const Icon(
+                                                        Icons.star,
+                                                        size: UsTokens.s12,
+                                                      ),
+                                                    if (m['pinned'] == true)
+                                                      const Icon(
+                                                        Icons.push_pin,
+                                                        size: UsTokens.s12,
+                                                      ),
+                                                    Flexible(
+                                                      child: Text(
+                                                        '${displayTime(m['created_at'] as String)}${m['edited_at'] != null ? ' · edited' : ''}${mine ? ' · ${m['_pending'] == true
+                                                                  ? 'Waiting'
+                                                                  : read
+                                                                  ? 'Read'
+                                                                  : 'Sent'}' : ''}',
+                                                        style: Theme.of(
+                                                          context,
+                                                        ).textTheme.labelSmall,
+                                                      ),
+                                                    ),
+                                                    if (mine &&
+                                                        m['_pending'] != true)
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets.only(
+                                                              left: UsTokens.s4,
+                                                            ),
+                                                        child: Icon(
+                                                          read
+                                                              ? Icons.done_all
+                                                              : Icons.done,
+                                                          size: UsTokens.s12,
+                                                          color: read
+                                                              ? colors.primary
+                                                              : colors
+                                                                    .onSurfaceVariant,
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             );
                           },
-                          decoration: const InputDecoration(
-                            hintText: 'A little hello…',
-                            hintMaxLines: 1,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: UsTokens.s16,
-                              vertical: UsTokens.s12,
-                            ),
-                          ),
+                        ),
+                ),
+                if (_aiOpen)
+                  Flexible(
+                    flex: 3,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: AiComposerPanel(
+                        key: ValueKey('ai-panel-$_aiPanelVersion'),
+                        space: space,
+                        controller: _text,
+                        service: widget.aiService,
+                        initialTask: _aiTask,
+                        messageId: _aiMessageId,
+                        onClose: () => setState(() => _aiOpen = false),
+                        onInserted: () {
+                          _typingDebounce?.cancel();
+                          _focus.requestFocus();
+                        },
+                      ),
+                    ),
+                  ),
+                if (_inbound.isNotEmpty)
+                  Material(
+                    color: colors.secondaryContainer,
+                    child: ListTile(
+                      title: Text('${_inbound.length} item(s) shared to Us'),
+                      subtitle: const Text(
+                        'Review text as a draft, or send selected photos/documents to your person.',
+                      ),
+                      leading: IconButton(
+                        tooltip: 'Discard incoming share',
+                        onPressed: () {
+                          ShareInbox.clear();
+                          setState(() => _inbound = []);
+                        },
+                        icon: const Icon(Icons.close),
+                      ),
+                      trailing: TextButton(
+                        onPressed: _sending
+                            ? null
+                            : () => safely(context, () => _shared(space)),
+                        child: Text(
+                          _inbound.every(
+                                (f) =>
+                                    f.type == SharedMediaType.text ||
+                                    f.type == SharedMediaType.url,
+                              )
+                              ? 'Add to draft'
+                              : 'Send attachments',
                         ),
                       ),
-                      IconButton(
-                        tooltip: _recording
-                            ? 'Stop and preview'
-                            : 'Record voice note',
-                        onPressed: _sending || _choosing
-                            ? null
-                            : () => _voice(space),
-                        icon: Icon(
-                          _recording ? Icons.stop_circle : Icons.mic_none,
-                        ),
+                    ),
+                  ),
+                if (_reply != null)
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.reply),
+                    title: const Text('Replying to'),
+                    subtitle: Text(
+                      _reply!['body'] as String? ?? 'Attachment',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: IconButton(
+                      onPressed: () => setState(() => _reply = null),
+                      icon: const Icon(Icons.close),
+                    ),
+                  ),
+                if (_recording)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.fiber_manual_record,
+                        color: UsColors.danger,
+                        size: UsTokens.s12,
                       ),
-                      IconButton.filled(
-                        tooltip: 'Send message',
-                        onPressed: _sending || _recording || _choosing
-                            ? null
-                            : () => _send(space),
-                        icon: const Icon(Icons.arrow_upward_rounded),
+                      const Text(' Recording · up to 3 minutes'),
+                      TextButton(
+                        onPressed: () async {
+                          await _recorder.cancel();
+                          _recordLimit?.cancel();
+                          if (mounted) setState(() => _recording = false);
+                        },
+                        child: const Text('Cancel'),
                       ),
                     ],
                   ),
+                SafeArea(
+                  top: false,
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      UsTokens.s8,
+                      UsTokens.s8,
+                      UsTokens.s8,
+                      UsTokens.s8,
+                    ),
+                    child: GlassCard(
+                      blur: true,
+                      radius: UsTokens.s36,
+                      padding: const EdgeInsets.all(UsTokens.s4),
+                      key: const Key('chat-composer'),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  key: const Key('chat-message'),
+                                  controller: _text,
+                                  focusNode: _focus,
+                                  minLines: 1,
+                                  maxLines: compact ? 2 : 4,
+                                  maxLength: 8000,
+                                  textCapitalization:
+                                      TextCapitalization.sentences,
+                                  buildCounter:
+                                      (
+                                        _, {
+                                        required currentLength,
+                                        required isFocused,
+                                        maxLength,
+                                      }) => null,
+                                  onChanged: (_) {
+                                    _typingDebounce?.cancel();
+                                    _typingDebounce = Timer(
+                                      const Duration(milliseconds: 200),
+                                      () => space.typing(_text.text.isNotEmpty),
+                                    );
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: 'A little hello…',
+                                    hintMaxLines: 1,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              IconButton.filled(
+                                tooltip: 'Send message',
+                                onPressed: _sending || _recording || _choosing
+                                    ? null
+                                    : () => _send(space),
+                                icon: const Icon(Icons.arrow_upward_rounded),
+                              ),
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                tooltip: 'Add attachment',
+                                onPressed: _sending || _recording || _choosing
+                                    ? null
+                                    : () => _attachments(space),
+                                icon: const Icon(Icons.add_circle_outline),
+                              ),
+                              IconButton(
+                                tooltip: 'Camera',
+                                onPressed: _sending || _recording || _choosing
+                                    ? null
+                                    : () => _camera(space),
+                                icon: const Icon(Icons.camera_alt_outlined),
+                              ),
+                              IconButton(
+                                tooltip: _recording
+                                    ? 'Stop and preview'
+                                    : 'Record voice note',
+                                onPressed: _sending || _choosing
+                                    ? null
+                                    : () => _voice(space),
+                                icon: Icon(
+                                  _recording
+                                      ? Icons.stop_circle
+                                      : Icons.mic_none,
+                                ),
+                              ),
+                              const Spacer(),
+                              IconButton(
+                                tooltip: 'AI writing tools',
+                                isSelected: _aiOpen,
+                                onPressed: _sending || _recording || _choosing
+                                    ? null
+                                    : () {
+                                        if (_aiOpen) {
+                                          setState(() => _aiOpen = false);
+                                        } else {
+                                          _openAi(
+                                            space,
+                                            task: _text.text.trim().isNotEmpty
+                                                ? 'rewrite'
+                                                : _reply != null
+                                                ? 'reply'
+                                                : 'together',
+                                            messageId: _reply?['id'] as String?,
+                                          );
+                                        }
+                                      },
+                                icon: const Icon(Icons.auto_awesome_outlined),
+                                selectedIcon: const Icon(Icons.auto_awesome),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
