@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "checks": {
+    "default_off": true,
+    "both_consent_required": true,
+    "inference_status": 200,
+    "live_private_answer": true,
+    "model": "openai/gpt-oss-120b",
+    "no_shared_answer_created_even_with_publish_true": true,
+    "revocation": true,
+    "cleanup": true
+  }
+}

@@ -1,11 +1,26 @@
 {
-  "ready": false,
+  "ready": true,
   "version": "1.8.0",
-  "status": "Signed candidate and Android 7/15 upgrade validation pending.",
+  "build_number": 8,
+  "validated_source_commit": "2e8fd55c261a1249e814a10a04c191cc1c817d02",
+  "validated_run": 40004638565,
+  "flutter_tests": 152,
+  "server_logic_tests": 8,
+  "static_analysis": "No errors or warnings; four existing informational notices in core files.",
+  "android_7_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
+  "android_15_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
+  "upgrade_from": "v1.7.0",
+  "android_17_validation": "skipped_at_user_request",
+  "physical_device_checks": "Not performed: actual two-phone AI interaction, camera/video decoding, calls and background notifications.",
+  "calls": "Experimental; TURN relay not provisioned; restrictive networks can fail.",
+  "ai": "Live private Groq GPT-OSS 120B inference verified with disposable accounts; consent default-off, both-partner opt-in, private publication guard and revocation passed; zero synthetic users/couples remain.",
   "backend": {
     "project": "mrtwyopmhmozuawgkuwi",
     "function": "us-ai",
     "version": 9,
-    "verify_jwt": true
-  }
+    "verify_jwt": true,
+    "ezbr_sha256": "a67e2c63bf004fea56246f338aeafa27af194b35bfe0e35d58ce587ca7d603c3"
+  },
+  "native_page_alignment": "All 12 checked 64-bit shared libraries have ELF LOAD alignment >= 16 KB and stored ZIP entries aligned to 16 KB.",
+  "apk_sha256": "bd91c21c368b2c334ff430763b32c3e3af0968dd9d04bd5077ef529c4491f1b4"
 }
