@@ -108,13 +108,14 @@ void main() {
       final composer = find.widgetWithText(TextField, 'A little hello…');
       expect(composer, findsOneWidget);
       final dockTop = tester.getTopLeft(find.byType(UsDock)).dy;
-      final composerBottom = tester.getBottomLeft(composer).dy;
+      final composerCard = find.byKey(const Key('chat-composer'));
+      final composerBottom = tester.getBottomLeft(composerCard).dy;
       expect(dockTop - composerBottom, inInclusiveRange(0, 24));
       tester.view.viewInsets = const FakeViewPadding(bottom: 300);
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(UsDock), findsNothing);
-      expect(tester.getBottomLeft(composer).dy, lessThanOrEqualTo(552));
-      expect(552 - tester.getBottomLeft(composer).dy, lessThan(24));
+      expect(tester.getBottomLeft(composerCard).dy, lessThanOrEqualTo(552));
+      expect(552 - tester.getBottomLeft(composerCard).dy, lessThan(24));
       tester.view.viewInsets = const FakeViewPadding();
       await tester.pump(const Duration(seconds: 1));
       expect(find.byType(UsDock), findsOneWidget);

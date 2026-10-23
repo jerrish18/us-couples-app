@@ -28,6 +28,7 @@ class FakeAi extends UsAi {
     DateTime? until,
     double? budget,
     int? minutes,
+    bool publish = false,
   }) async {
     requests++;
     requestedLanguage = language;
