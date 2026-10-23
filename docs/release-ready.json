@@ -1,20 +1,11 @@
 {
-  "ready": true,
-  "version": "1.7.0",
-  "validated_source_commit": "1ccdfb87b60d7b8b5e92b5c3bcd48dea31d7d2ca",
-  "validated_run": 39539584916,
-  "flutter_tests": 129,
-  "server_logic_tests": 7,
-  "server_logic_tests_in_signed_run": 6,
-  "live_synthetic_scenarios": 12,
-  "static_analysis": "no errors or warnings; four existing informational notices",
-  "android_7_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
-  "android_15_in_place_upgrade_launch_and_oauth_denial_callback": "passed",
-  "android_17_validation": "skipped_at_user_request",
-  "android_17_skip_reason": "User explicitly requested skipping Android 17 testing. No Android 17 compatibility claim is made.",
-  "physical_device_checks": "Not performed: actual two-phone camera/video decoding, AI interaction, Bluetooth, background notifications or voice/video media exchange.",
-  "calls": "experimental; TURN relay not provisioned; restrictive networks can fail",
-  "ai": "Groq GPT-OSS 120B connected; English strongest in samples; Tamil/Tanglish beta; no paid fallback configured",
-  "native_page_alignment": "All 12 checked 64-bit shared libraries have ELF LOAD alignment >= 16 KB and stored ZIP entries aligned to 16 KB.",
-  "apk_sha256": "267e1b268f7b36f10d3fb9290f5901d0c221c29bcff6e5d3238890750198961f"
+  "ready": false,
+  "version": "1.8.0",
+  "status": "Signed candidate and Android 7/15 upgrade validation pending.",
+  "backend": {
+    "project": "mrtwyopmhmozuawgkuwi",
+    "function": "us-ai",
+    "version": 9,
+    "verify_jwt": true
+  }
 }

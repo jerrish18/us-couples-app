@@ -1,22 +1,17 @@
-# Us v1.7.0 — a little AI help, on your terms
+# Us v1.8.0 — AI, right where you write
 
-- Help me reply and Rewrite: private suggestions you can edit before sending.
-- Ask AI together: labelled shared answers, also reachable from an `@Us` draft.
-- Catch me up: summaries of a chosen time range, with source messages.
-- Turn chat into plans: editable date, task and expense drafts.
-- Find past conversations: keyword recall with links to original messages.
-- Date planner: explicit budget and duration, itemised estimates and calculated totals; choose a date before saving.
-- AI expense drafting and text-based memory captions.
-- Video playback repair: recover from deleted capture files, stream sent videos from fresh private URLs, and reset failed players for retry.
+Tap the sparkle button beside your message to use all nine AI tools without leaving chat: replies, rewrites, Ask AI together, summaries, plans, conversation search, date planning, expense drafts and memory captions.
 
-Each person enables AI independently. Shared-chat processing requires both partners' permission. No media, location or cycle records are automatically sent to Groq. The Groq API key stays on the server. App limit: 20 requests per couple per UTC day, at least 30 seconds apart; provider quotas can also apply. No paid fallback is configured.
+- Suggestions and readable plans appear directly in the message box. Edit them, try another option, or Undo before sending.
+- Ask AI together prepares a private draft. The usual Send button shares it when you are ready.
+- Dates, tasks and expenses have a separate editable Review & save to Us action.
+- New typing is preserved while AI works or a message is being sent. Closing the tools discards a pending result.
+- Improved narrow-screen and keyboard layouts, larger-text support, input validation, privacy controls and error messages.
 
-English is the strongest tested option. Tamil and Tanglish are beta: wording and grammar can vary, and replies should be reviewed. AI can make mistakes. Recall is bounded keyword search, not exhaustive semantic search. Date costs are estimates; verify venue details.
+Install **Us.apk as an update** over your existing Us app; do not uninstall it. Both partners should update. The release uses the existing signing certificate and a higher Android build number.
 
-Install as an UPDATE over your current Us app; do not uninstall it. Both partners should update. Chat → Us AI → enable assistance; enable shared-chat context on both phones to use shared-history features.
+Each person enables AI independently using the settings button in the chat AI panel. Both partners must allow shared-chat context for reply help, summaries, recall and extracting plans. Rewrites, generic date ideas, expense descriptions and captions use only your submitted text. Photos, voice recordings, location and cycle records are excluded from automatic AI context.
 
-Existing voice/video calls remain experimental until a TURN relay and physical two-phone checks are completed. Android 17 testing is skipped at the user's request. Actual camera/video decoding, shared notifications and two-phone interaction still need device verification.
+Groq GPT-OSS 120B powers the assistant. Limit: 20 requests per couple daily (UTC), at least 30 seconds apart. No paid fallback. Tamil and Tanglish remain beta; review wording. Recall uses limited keyword matches, and date costs are estimates.
 
-Validation: 129 Flutter tests; seven server logic tests; 12 synthetic live AI scenarios; database consent/privacy checks. Signed APK certificate and ARM architectures verified, with 16 KB alignment verified for all 12 checked 64-bit native libraries.
-
-The exact signed APK passed in-place upgrade from v1.6.0, launch, and OAuth-denial callback checks on Android 7 and Android 15. Android 17 validation was skipped as requested.
+Validation: 152 Flutter tests and 8 server logic tests. Release checks verify the existing signing certificate, ARM architectures, and in-place upgrades from v1.7.0 on Android 7 and Android 15 before publication. Physical-device and two-phone interaction checks are not claimed. Existing voice/video calls remain experimental without a provisioned TURN relay. Android 17 testing remains skipped as previously requested.
