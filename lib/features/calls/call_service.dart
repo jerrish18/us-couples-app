@@ -332,7 +332,13 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         await _candidate(c);
       }
       _outbound.clear();
-      _timeout = Timer(const Duration(seconds: 60), () => end('missed'));
+      _timeout = Timer(const Duration(seconds: 60), () {
+        // Connection can complete while candidate writes are still awaiting I/O,
+        // before this timer is assigned. Never end an already connected call.
+        if (call?['id'] == row['id'] &&
+            connection != 'RTCPeerConnectionStateConnected')
+          unawaited(end('missed'));
+      });
     } catch (_) {
       error =
           'Could not start the call. Check microphone/camera permissions and your connection.';
@@ -378,7 +384,11 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         await _candidate(c);
       }
       _outbound.clear();
-      _timeout = Timer(const Duration(seconds: 45), () => end('failed'));
+      _timeout = Timer(const Duration(seconds: 45), () {
+        if (call?['id'] == id &&
+            connection != 'RTCPeerConnectionStateConnected')
+          unawaited(end('failed'));
+      });
       await refresh();
       _queueCandidates();
     } catch (_) {
