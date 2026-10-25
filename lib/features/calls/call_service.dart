@@ -7,6 +7,9 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/session.dart';
+import '../echo/phone_runtime.dart';
+import '../echo/phone_conversation.dart';
+import 'package:timezone/timezone.dart' as tz;
 
 final callProvider = Provider<CallService>((ref) {
   final c = CallService(ref.read(sessionProvider));
@@ -25,9 +28,45 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _native.setMethodCallHandler((call) async {
       if (call.method == 'endCall') await end();
     });
+    phone.addListener(_phoneChanged);
+    phone.preferencesChanged = _phonePreferencesChanged;
+    unawaited(
+      phone
+          .initialize()
+          .then((_) {
+            if (!_dead) _notify();
+          })
+          .catchError((Object _) {}),
+    );
     _sessionChanged();
   }
   final UsSession session;
+  final phone = PhoneAiRuntime.instance;
+  PhoneConversation? _phoneConversation;
+  Map<String, dynamic>? _echoPrefs;
+  Timer? _autoAnswer;
+  String? _autoAttempt;
+  bool _aiAvailable = false;
+  String aiAvailability = 'Set up phone AI in ECHO settings';
+  bool get canAiAnswer => _aiAvailable && !_busy && !aiRequested;
+  void _phonePreferencesChanged() {
+    unawaited(_warmPhonePreferences(_epoch).then((_) => refresh()));
+  }
+
+  void _phoneChanged() {
+    if (!_dead) {
+      if (phone.preferPhone)
+        _aiAvailable =
+            phone.ready &&
+            _echoPrefs?['enabled'] == true &&
+            _echoPrefs?['host'] == 'phone' &&
+            phone.language == _echoPrefs?['language'] &&
+            phone.voice == _echoPrefs?['voice'];
+      if (call != null) _schedulePhoneAnswer(call!);
+      _notify();
+    }
+  }
+
   final local = RTCVideoRenderer(), remote = RTCVideoRenderer();
   Map<String, dynamic>? call;
   Map<String, dynamic>? echoSession;
@@ -57,7 +96,12 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       call?['callee_id'] == session.userId && call?['state'] == 'ringing';
   bool get video => call?['video'] == true;
   bool get busy => _busy;
-  bool get canTakeOverEcho => echoForMe && _peer == null && !_busy;
+  bool get canTakeOverEcho =>
+      echoForMe &&
+      !_busy &&
+      (_phoneConversation != null
+          ? !_phoneConversation!.human
+          : echoSession?['host'] != 'phone' && _peer == null);
   void _notify() {
     if (!_dead) notifyListeners();
   }
@@ -65,8 +109,15 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   void _sessionChanged() {
     final cid = session.coupleId;
     if (cid == _cid && _uid == session.userId) return;
+    if (_uid != null &&
+        (_uid != session.userId || (_cid != null && cid != _cid)))
+      unawaited(phone.shutdown().catchError((Object _) {}));
     _uid = session.userId;
     _cid = cid;
+    _echoPrefs = null;
+    _aiAvailable = false;
+    _autoAttempt = null;
+    _autoAnswer?.cancel();
     _epoch++;
     if (_channel != null) unawaited(session.client.removeChannel(_channel!));
     _channel = null;
@@ -97,11 +148,47 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
           )
           .subscribe();
       _poll = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (_foreground && (call != null || ++_idlePolls % 6 == 0)) refresh();
+        if ((_foreground || phone.readyService) &&
+            (call != null || ++_idlePolls % 6 == 0))
+          refresh();
       });
       unawaited(refresh());
+      unawaited(_warmPhonePreferences(_epoch));
     }
     _notify();
+  }
+
+  Future<void> _warmPhonePreferences(int epoch) async {
+    try {
+      await phone.initialize();
+      if (!phone.preferPhone ||
+          session.coupleId == null ||
+          _dead ||
+          epoch != _epoch)
+        return;
+      final prefs = await session.client
+          .from('echo_preferences')
+          .select()
+          .eq('couple_id', session.coupleId!)
+          .eq('user_id', session.userId!)
+          .maybeSingle();
+      if (_dead || epoch != _epoch || prefs == null) return;
+      _echoPrefs = Map<String, dynamic>.from(prefs);
+      if (prefs['enabled'] == true &&
+          prefs['host'] == 'phone' &&
+          _foreground &&
+          await phone.models.available(phone.plus)) {
+        await phone.prepare(
+          '${prefs['language']}',
+          selectedVoice: '${prefs['voice']}',
+        );
+        if (_dead || epoch != _epoch) return;
+        if (phone.keepReady && _foreground) await phone.startReady();
+        _phoneChanged();
+      }
+    } catch (_) {
+      /* Keep normal calls available when models/voices are unavailable. */
+    }
   }
 
   @override
@@ -146,6 +233,53 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         aiRequested = false;
       }
       call = row;
+      if (row['callee_id'] == session.userId) {
+        try {
+          final prefs = await session.client
+              .from('echo_preferences')
+              .select()
+              .eq('couple_id', cid)
+              .eq('user_id', session.userId!)
+              .maybeSingle();
+          if (_dead || epoch != _epoch) return;
+          _echoPrefs = prefs == null ? null : Map<String, dynamic>.from(prefs);
+          if (_phoneConversation != null && prefs != null)
+            await _phoneConversation!.updatePreferences(
+              Map<String, dynamic>.from(prefs),
+            );
+          if (phone.preferPhone) {
+            _aiAvailable =
+                phone.ready &&
+                prefs?['enabled'] == true &&
+                prefs?['host'] == 'phone' &&
+                phone.language == prefs?['language'] &&
+                phone.voice == prefs?['voice'];
+            aiAvailability = phone.ready
+                ? 'Enable and save phone answering in ECHO settings'
+                : 'Download and prepare models in ECHO settings';
+          } else {
+            final device = await session.client
+                .from('echo_devices')
+                .select()
+                .eq('user_id', session.userId!)
+                .maybeSingle();
+            final beat = DateTime.tryParse('${device?['heartbeat']}');
+            _aiAvailable =
+                device?['ready'] == true &&
+                beat != null &&
+                DateTime.now().toUtc().difference(beat.toUtc()).inSeconds <
+                    20 &&
+                prefs?['enabled'] == true &&
+                prefs?['host'] == 'bridge';
+            aiAvailability = _aiAvailable
+                ? 'Your Mac bridge is ready'
+                : 'Your selected Mac bridge is offline';
+          }
+          _schedulePhoneAnswer(row);
+        } catch (_) {
+          _aiAvailable = false;
+        }
+      }
       try {
         final echo = await session.client
             .from('echo_sessions')
@@ -153,7 +287,13 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
             .eq('call_id', row['id'] as String)
             .maybeSingle();
         if (_dead || epoch != _epoch || call?['id'] != row['id']) return;
-        echoSession = echo == null ? null : Map<String, dynamic>.from(echo);
+        echoSession = _phoneConversation != null
+            ? _phoneConversation!.snapshot(
+                echo == null ? null : Map<String, dynamic>.from(echo),
+              )
+            : echo == null
+            ? null
+            : Map<String, dynamic>.from(echo);
         if (_echoTakingOver &&
             _peer != null &&
             !_remoteSet &&
@@ -226,6 +366,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
           'echoCancellation': true,
           'noiseSuppression': true,
           'autoGainControl': true,
+          'channelCount': 1,
         },
         'video': useVideo
             ? {
@@ -267,6 +408,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         if (state == RTCPeerConnectionState.RTCPeerConnectionStateConnected) {
           _timeout?.cancel();
           _disconnect?.cancel();
+          if (_phoneConversation != null)
+            unawaited(_phoneConversation!.connected());
           if (call != null)
             unawaited(
               session.client
@@ -412,6 +555,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> requestAiAnswer() async {
+    if (phone.preferPhone) {
+      await _answerOnPhone();
+      return;
+    }
     if (!incoming || video || _busy) return;
     final id = call!['id'] as String, epoch = _epoch;
     _busy = true;
@@ -456,7 +603,159 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  void _schedulePhoneAnswer(Map<String, dynamic> row) {
+    _autoAnswer?.cancel();
+    final prefs = _echoPrefs;
+    if (!incoming ||
+        video ||
+        !phone.preferPhone ||
+        !_aiAvailable ||
+        prefs == null ||
+        prefs['rule'] == 'manual' ||
+        !(_foreground || phone.readyService) ||
+        _autoAttempt == row['id'])
+      return;
+    if (prefs['rule'] == 'schedule') {
+      try {
+        final local = tz.TZDateTime.from(
+          DateTime.now(),
+          tz.getLocation('${prefs['timezone']}'),
+        );
+        final minute = local.hour * 60 + local.minute,
+            start = prefs['start_minute'] as int,
+            end = prefs['end_minute'] as int;
+        if (!(start == end ||
+            (start < end
+                ? minute >= start && minute < end
+                : minute >= start || minute < end)))
+          return;
+      } catch (_) {
+        return;
+      }
+    }
+    final created = DateTime.tryParse('${row['created_at']}');
+    if (created == null) return;
+    final delay = created
+        .add(Duration(seconds: prefs['delay_seconds'] as int))
+        .difference(DateTime.now());
+    final id = row['id'];
+    _autoAnswer = Timer(delay.isNegative ? Duration.zero : delay, () {
+      if (!_dead &&
+          call?['id'] == id &&
+          incoming &&
+          (_foreground || phone.readyService)) {
+        _autoAttempt = '$id';
+        unawaited(requestAiAnswer());
+      }
+    });
+  }
+
+  Future<void> _answerOnPhone() async {
+    if (!incoming || video || _busy) return;
+    final row = Map<String, dynamic>.from(call!), epoch = _epoch;
+    final id = row['id'] as String;
+    _busy = true;
+    error = null;
+    _notify();
+    try {
+      if (!phone.ready)
+        throw StateError(
+          'Download and prepare phone AI in ECHO settings first.',
+        );
+      final prefs = await session.client
+          .from('echo_preferences')
+          .select()
+          .eq('couple_id', session.coupleId!)
+          .eq('user_id', session.userId!)
+          .maybeSingle();
+      if (prefs?['enabled'] != true || prefs?['host'] != 'phone')
+        throw StateError(
+          'Enable and save phone answering in ECHO settings first.',
+        );
+      if (phone.language != prefs?['language'] ||
+          phone.voice != prefs?['voice'])
+        throw StateError('Prepare the selected language in ECHO settings.');
+      if (_dead || epoch != _epoch || call?['id'] != id || !incoming) return;
+      await _setup(false);
+      if (_dead || epoch != _epoch || call?['id'] != id || !incoming) {
+        await _release();
+        return;
+      }
+      final conversation = PhoneConversation(
+        runtime: phone,
+        session: session,
+        callId: id,
+        coupleId: session.coupleId!,
+        preferences: Map<String, dynamic>.from(prefs!),
+        onChanged: () {
+          if (!_dead && call?['id'] == id) {
+            echoSession = _phoneConversation?.snapshot(echoSession);
+            _notify();
+          }
+        },
+      );
+      _phoneConversation = conversation;
+      await conversation.arm();
+      await _peer!.setRemoteDescription(
+        RTCSessionDescription(row['offer'] as String, 'offer'),
+      );
+      _remoteSet = true;
+      await _peer!.setLocalDescription(await _peer!.createAnswer());
+      final description = await _peer!.getLocalDescription();
+      final claimed = await session.client.rpc(
+        'echo_answer_phone',
+        params: {'p_call': id, 'p_answer': description!.sdp},
+      );
+      if (claimed != true) {
+        await _release();
+        await refresh();
+        return;
+      }
+      conversation.claimed = true;
+      echoSession = conversation.snapshot(null);
+      _signalingReady = true;
+      for (final candidate in _outbound) {
+        await _candidate(candidate);
+      }
+      _outbound.clear();
+      if (connection == 'RTCPeerConnectionStateConnected')
+        unawaited(conversation.connected());
+      _timeout = Timer(const Duration(seconds: 45), () {
+        if (call?['id'] == id &&
+            connection != 'RTCPeerConnectionStateConnected')
+          unawaited(end('failed'));
+      });
+      await refresh();
+      _queueCandidates();
+    } catch (e) {
+      await _release();
+      if (epoch == _epoch)
+        error = e is StateError
+            ? '${e.message}'
+            : 'Could not start phone AI. You can answer normally.';
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
   Future<void> takeOverEcho() async {
+    if (_phoneConversation != null) {
+      if (_busy) return;
+      _busy = true;
+      _notify();
+      try {
+        await _phoneConversation!.takeOver();
+        echoSession = _phoneConversation!.snapshot(echoSession);
+      } catch (_) {
+        error =
+            'Your call is still connected. Check the takeover status and try again.';
+      } finally {
+        _busy = false;
+        _notify();
+      }
+      return;
+    }
     if (!echoForMe || _busy || _peer != null) return;
     final id = call!['id'] as String, epoch = _epoch;
     _busy = true;
@@ -513,6 +812,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> eraseEchoTranscript() async {
     if (!echoForMe) return;
     try {
+      // Clear the phone's live copy and cancel queued work as well as the row.
+      await _phoneConversation?.erase();
       // Disable future saves before clearing existing records.
       await session.client
           .from('echo_preferences')
@@ -630,6 +931,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _releaseNow() async {
     _timeout?.cancel();
     _disconnect?.cancel();
+    _autoAnswer?.cancel();
+    final conversation = _phoneConversation;
+    _phoneConversation = null;
+    await conversation?.close();
     final peer = _peer, stream = _stream;
     _peer = null;
     _stream = null;
@@ -648,6 +953,11 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     await stream?.dispose();
     await peer?.close();
     await peer?.dispose();
+    if (conversation != null) {
+      try {
+        await PhoneAiRuntime.native.invokeMethod('release');
+      } catch (_) {}
+    }
     muted = false;
     speaker = false;
     cameraEnabled = true;
@@ -662,6 +972,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _dead = true;
     _native.setMethodCallHandler(null);
     session.removeListener(_sessionChanged);
+    phone.removeListener(_phoneChanged);
+    if (phone.preferencesChanged == _phonePreferencesChanged)
+      phone.preferencesChanged = null;
+    _autoAnswer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _poll?.cancel();
     if (_channel != null) unawaited(session.client.removeChannel(_channel!));

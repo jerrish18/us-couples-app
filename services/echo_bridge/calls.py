@@ -22,7 +22,7 @@ TERMINAL = {"ended", "declined", "missed", "failed"}
 
 def should_answer(call, prefs, manual=False, now=None):
     now = now or datetime.now(timezone.utc)
-    if not prefs.get("enabled") or call["state"] != "ringing" or call.get("video"):
+    if prefs.get("host", "bridge") != "bridge" or not prefs.get("enabled") or call["state"] != "ringing" or call.get("video"):
         return False
     if datetime.fromisoformat(call["expires_at"].replace("Z", "+00:00")) <= now:
         return False

@@ -1,6 +1,8 @@
 package com.jerrish18.us
 
 import android.os.Build
+import android.content.Context
+import io.flutter.embedding.engine.FlutterEngineCache
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.view.HapticFeedbackConstants
@@ -10,6 +12,8 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
+    override fun shouldDestroyEngineWithHost(): Boolean = false
+    override fun provideFlutterEngine(context: Context): FlutterEngine? = FlutterEngineCache.getInstance().get("us-main")
     private var presentation: MethodChannel? = null
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
@@ -23,6 +27,8 @@ class MainActivity : FlutterFragmentActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        FlutterEngineCache.getInstance().put("us-main",flutterEngine)
+        if(EchoPhoneNative.current?.attachedTo(flutterEngine)!=true) EchoPhoneNative(applicationContext,flutterEngine)
         presentation = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "us/presentation")
         presentation!!.setMethodCallHandler { call, result ->
             if (call.method == "capabilities") {

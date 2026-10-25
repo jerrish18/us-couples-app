@@ -105,6 +105,8 @@ class CallScreen extends StatelessWidget {
                 ),
                 if (c.error != null)
                   Text(c.error!, style: TextStyle(color: colors.error)),
+                if (c.incoming && !c.video && !c.canAiAnswer && !c.busy)
+                  Text(c.aiAvailability, textAlign: TextAlign.center),
                 if (c.aiRequested && c.incoming)
                   const Text('ECHO requested. You can still answer normally.'),
                 if (c.busy) const LinearProgressIndicator(),
@@ -122,9 +124,7 @@ class CallScreen extends StatelessWidget {
                       ),
                     if (c.incoming && !c.video)
                       OutlinedButton.icon(
-                        onPressed: c.busy || c.aiRequested
-                            ? null
-                            : c.requestAiAnswer,
+                        onPressed: c.canAiAnswer ? c.requestAiAnswer : null,
                         icon: const Icon(Icons.support_agent),
                         label: const Text('AI Answer'),
                       ),
@@ -214,6 +214,19 @@ class EchoCallDetails extends StatelessWidget {
                 'Flagged caller messages (keyword matches)\n${echo['important']}',
               ),
             ),
+          ),
+        if (echo['_local_status'] != null)
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Text(
+              '${echo['_local_status']}',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        if (echo['_ephemeral'] == true)
+          const Text(
+            'Live on this phone · not saved',
+            textAlign: TextAlign.center,
           ),
         if (transcript.isEmpty)
           const Padding(

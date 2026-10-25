@@ -96,3 +96,24 @@ gradle.write_text(gradle.read_text().replace('compileSdk = flutter.compileSdkVer
 # Preserve JNI methods used by the WebRTC native library in release builds.
 rules=Path('android/app/proguard-rules.pro')
 rules.write_text(rules.read_text()+'\n-keep class org.webrtc.** { *; }\n-keep class com.cloudwebrtc.webrtc.** { *; }\n')
+
+# On-phone AI uses the existing engine, native WebRTC audio, and offline TTS.
+for name in ['EchoPcm.kt','EchoPhoneNative.kt','EchoPhoneService.kt']:
+    shutil.copyfile(Path('android_templates')/name,activity.parent/name)
+text=manifest.read_text().replace('</application>','<service android:name=".EchoPhoneService" android:exported="false" android:foregroundServiceType="microphone"/></application>')
+manifest.write_text(text)
+test_dir=Path('android/app/src/test/kotlin/com/jerrish18/us');test_dir.mkdir(parents=True,exist_ok=True)
+shutil.copyfile('android_templates/tests/EchoPcmTest.kt',test_dir/'EchoPcmTest.kt')
+# AudioProcessingAdapter implements a WebRTC interface. The plugin declares the
+# AAR as implementation, so the app must put the same pinned AAR on its own
+# compile classpath when installing native audio processors.
+gradle.write_text(gradle.read_text()+'\ndependencies { implementation("io.github.webrtc-sdk:android:150.7871.01"); testImplementation("junit:junit:4.13.2") }\n')
+
+# Android 11+ package visibility is required to discover installed offline TTS.
+text=manifest.read_text()
+query='<intent><action android:name="android.intent.action.TTS_SERVICE"/></intent>'
+if '<queries>' in text:
+    text=text.replace('<queries>','<queries>'+query,1)
+else:
+    text=text.replace('</manifest>','<queries>'+query+'</queries></manifest>')
+manifest.write_text(text)

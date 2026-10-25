@@ -60,6 +60,7 @@ class Bridge:
                         order="created_at.desc",
                         limit="3",
                     )
+                    prefs = [p for p in prefs if p.get("host", "bridge") == "bridge"]
                     for row in rows:
                         key = (uid, row["id"])
                         if key in self.calls:

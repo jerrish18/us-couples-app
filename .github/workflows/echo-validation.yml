@@ -1,7 +1,7 @@
 name: ECHO bridge and database validation
 on:
   push:
-    branches: [development/echo-reliability]
+    branches: [development/echo-reliability, development/echo-on-device]
   pull_request:
 permissions:
   contents: read

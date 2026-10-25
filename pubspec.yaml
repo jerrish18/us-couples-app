@@ -1,7 +1,7 @@
 name: us
 description: A private space for two.
 publish_to: none
-version: 1.9.0+9
+version: 1.10.0+10
 environment:
   sdk: '>=3.8.0 <4.0.0'
 dependencies:
@@ -31,7 +31,10 @@ dependencies:
   home_widget: 0.8.0
   local_auth: 2.3.0
   share_plus: 11.1.0
-  archive: 3.6.1
+  archive: 4.5.2
+  llamadart: 0.16.2
+  sherpa_onnx: 2.0.0
+  crypto: 3.0.7
   app_links: 7.2.2
   geolocator: 14.0.2
   flutter_map: 8.3.2
@@ -61,3 +64,15 @@ flutter:
           weight: 700
         - asset: assets/fonts/Outfit.ttf
           weight: 800
+
+hooks:
+  user_defines:
+    llamadart:
+      llamadart_native_runtimes: [llama_cpp]
+      llamadart_native_backends:
+        platforms:
+          android-arm64:
+            backends: [cpu]
+            cpu_profile: compact
+          android-x64: [cpu]
+          linux-x64: [cpu]

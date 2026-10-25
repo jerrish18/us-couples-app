@@ -39,8 +39,10 @@ create function private.kick_push() returns bigint language sql as $$select 1::b
 """
     + existing[start:end]
 )
-sql(Path("supabase/migrations/20261025082647_echo_receptionist.sql").read_text())
+for migration in sorted(Path("supabase/migrations").glob("*echo*.sql")):
+    sql(migration.read_text())
 sql(Path("supabase/tests/echo.sql").read_text())
+sql(Path("supabase/tests/echo_phone.sql").read_text())
 print(
     "PASS: ECHO permissions, atomic claiming, caller isolation and transcript erasure"
 )

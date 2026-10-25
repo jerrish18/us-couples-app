@@ -63,7 +63,7 @@ Future<void> exportBackup(UsSpace space) async {
     }
   } finally {
     client.close();
-    encoder.close();
+    await encoder.close();
   }
   await SharePlus.instance.share(
     ShareParams(files: [XFile(zipPath)], text: 'Our private Us backup'),
