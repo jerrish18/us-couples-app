@@ -23,6 +23,16 @@ void main() {
           {'role': 'user', 'content': 'Reply only with the single word Hello.'},
         ], maxTokens: 24).join();
         expect(reply.toLowerCase(), contains('hello'));
+        final tamil = await text.generate([
+          {
+            'role': 'user',
+            'content': 'Write only a short Tamil greeting in Tamil script.',
+          },
+        ], maxTokens: 32).join();
+        expect(RegExp(r'[\u0B80-\u0BFF]').hasMatch(tamil), true);
+        print(
+          'Local Tamil text generation produced Tamil script; linguistic quality still needs human review.',
+        );
         final wavePath = Platform.environment['ECHO_SPEECH_FIXTURE'];
         if (wavePath == null)
           throw StateError(

@@ -1,3 +1,10 @@
+# v1.10.0+10 phone-hosting candidate
+
+- Add verified/resumable on-phone Qwen and multilingual Whisper downloads, conservative 6/8 GB profiles and offline Android TTS checks.
+- Route ECHO call audio locally and restore the same microphone/peer on human takeover. Prevent raw microphone audio and interrupted speech chunks from reaching the caller during AI answering.
+- Add host-aware answer arbitration, opt-in foreground background readiness, model/voice setup, live ephemeral transcripts and readiness-aware AI Answer controls.
+- Preserve normal calls and the optional Mac bridge. Keep production readiness false pending physical handset, Tamil/Tanglish and background tests.
+
 # v1.9.0+9 candidate changes
 
 - Fix native modal surfaces inheriting a transparent bottom-sheet background. Keep the established glass appearance for sheets that explicitly request it.

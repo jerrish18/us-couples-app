@@ -108,7 +108,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   void _sessionChanged() {
     final cid = session.coupleId;
     if (cid == _cid && _uid == session.userId) return;
-    if (_uid != null && _uid != session.userId)
+    if (_uid != null &&
+        (_uid != session.userId || (_cid != null && cid != _cid)))
       unawaited(phone.shutdown().catchError((Object _) {}));
     _uid = session.userId;
     _cid = cid;

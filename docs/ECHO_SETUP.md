@@ -1,3 +1,5 @@
+> v1.10 also supports phone hosting: see [ECHO on Android](ECHO_PHONE.md). This page describes the optional Mac bridge.
+
 # ECHO self-hosted voice receptionist (v1.9 candidate)
 
 ECHO extends the existing Us Flutter/Supabase/WebRTC app. It does not replace the app, change its package ID or signing key, or migrate existing user records. Automatic answering is **off by default**. Each partner authorizes their own bridge session and answering preferences.
