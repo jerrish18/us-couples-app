@@ -812,6 +812,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> eraseEchoTranscript() async {
     if (!echoForMe) return;
     try {
+      // Clear the phone's live copy and cancel queued work as well as the row.
+      await _phoneConversation?.erase();
       // Disable future saves before clearing existing records.
       await session.client
           .from('echo_preferences')

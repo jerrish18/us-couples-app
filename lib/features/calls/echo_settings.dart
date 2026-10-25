@@ -340,10 +340,7 @@ class _EchoSettingsState extends State<EchoSettings> {
                 ],
                 onChanged: _saving
                     ? null
-                    : (value) async {
-                        await phone.setHost(value!);
-                        if (mounted) setState(() {});
-                      },
+                    : (value) => _task(() => phone.setHost(value!)),
               ),
               const SizedBox(height: 12),
               if (phone.preferPhone)
