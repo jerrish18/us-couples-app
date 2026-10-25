@@ -44,20 +44,27 @@ class _VoiceBubbleState extends State<VoiceBubble> {
       } else {
         if (_player.processingState == ProcessingState.completed)
           await _player.seek(Duration.zero);
-        unawaited(_player.play());
+        unawaited(_player.play().catchError((Object _) => _failed()));
       }
     } catch (_) {
-      if (mounted)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Could not play this voice note. Try again when connected.',
-            ),
-          ),
-        );
+      _failed();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _failed() {
+    // A failed local source may have been removed after upload. The next tap
+    // resolves the source again instead of replaying a permanently failed load.
+    _loaded = false;
+    if (mounted)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not play this voice note. Tap to retry when connected.',
+          ),
+        ),
+      );
   }
 
   String _time(Duration d) =>
@@ -96,7 +103,11 @@ class _VoiceBubbleState extends State<VoiceBubble> {
                         ? 2
                         : 1,
                   );
-                  _player.setSpeed(_speed);
+                  unawaited(
+                    _player
+                        .setSpeed(_speed)
+                        .catchError((Object _) => _failed()),
+                  );
                 },
                 child: Text('${_speed}×'),
               ),

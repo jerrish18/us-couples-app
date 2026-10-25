@@ -38,6 +38,8 @@ class _VideoBubbleState extends State<VideoBubble> with WidgetsBindingObserver {
                 widget.message['_local_file'])) {
       _generation++;
       _loading = false;
+      _usedLocal = false;
+      _remoteRecovery = false;
       _error = null;
       _release();
     }

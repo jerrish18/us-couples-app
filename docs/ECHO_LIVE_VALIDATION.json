@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "checks": [
+    "AI denied before consent",
+    "Real authenticated private rewrite returns suggestions",
+    "Shared history denied without partner consent",
+    "Outsider cannot claim ECHO call",
+    "Callee atomically claims ECHO answer",
+    "Duplicate ECHO answer rejected",
+    "Outsider cannot read ECHO transcript",
+    "Live retention guard prevents stale transcript restoration",
+    "Real selected-context reply after both partners consent",
+    "Private AI drafts never published"
+  ],
+  "cleanup": true,
+  "synthetic_couple": "ebd9c1f9-b806-482f-83b2-1dc33c7007f2",
+  "synthetic_users": [
+    "7b55a148-bbe7-41fb-9bc8-14e355fc0eae",
+    "4e13e35d-4955-417a-aab7-b99946236309",
+    "801db6ba-e6d4-4ea9-884d-57168d1134b5"
+  ],
+  "device_audio_tested": false,
+  "date_utc": "2026-10-25",
+  "project_id": "mrtwyopmhmozuawgkuwi",
+  "edge_function": "us-ai",
+  "edge_version": 10,
+  "verify_jwt": true,
+  "migration": "20261025082647_echo_receptionist",
+  "independent_cleanup_counts": {
+    "users": 0,
+    "couples": 0,
+    "calls": 0
+  },
+  "qa_endpoint_disabled": true,
+  "source_sha256": {
+    "index.ts": "b3766f6b63af3bf7f929877c45d228f1cb6132bf940ecd24b5d79626d96ce68a",
+    "logic.ts": "7fb6a8fa5122d056ee3aa05024b295402689178661cce01b15a880bdf17d8854",
+    "providers.ts": "08b62a1b51ac0a02485621dbffe020c95a74a452d740c7edb2fe2aaae0ef088d"
+  }
+}

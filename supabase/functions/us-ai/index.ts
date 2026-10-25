@@ -17,7 +17,7 @@ Deno.serve(async(req:Request)=>{
   if(coupleError||!couple)return json({error:'Pair your accounts first.'},403);
   const text=await req.text();
   if(new TextEncoder().encode(text).length>8000)return json({error:'Request too large.'},413);
-  let input;try{input=parseInput(JSON.parse(text));}catch(e){return json({error:(e as Error).message},400);}
+  let input:ReturnType<typeof parseInput>;try{input=parseInput(JSON.parse(text));}catch(e){return json({error:(e as Error).message},400);}
   async function consent(){
    const {data,error}=await client.from('ai_preferences').select('user_id,enabled,share_history').eq('couple_id',couple!.id);
    if(error)return false;
