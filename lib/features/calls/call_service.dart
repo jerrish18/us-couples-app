@@ -30,6 +30,12 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   final UsSession session;
   final local = RTCVideoRenderer(), remote = RTCVideoRenderer();
   Map<String, dynamic>? call;
+  Map<String, dynamic>? echoSession;
+  bool _echoTakingOver = false, _signalingReady = false;
+  bool aiRequested = false;
+  bool get echoActive =>
+      echoSession != null && echoSession!['state'] != 'ended';
+  bool get echoForMe => echoActive && call?['callee_id'] == session.userId;
   RTCPeerConnection? _peer;
   MediaStream? _stream;
   RealtimeChannel? _channel;
@@ -51,6 +57,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       call?['callee_id'] == session.userId && call?['state'] == 'ringing';
   bool get video => call?['video'] == true;
   bool get busy => _busy;
+  bool get canTakeOverEcho => echoForMe && _peer == null && !_busy;
   void _notify() {
     if (!_dead) notifyListeners();
   }
@@ -65,6 +72,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _channel = null;
     _poll?.cancel();
     call = null;
+    echoSession = null;
+    aiRequested = false;
     unawaited(_release());
     if (cid != null) {
       _channel = session.client
@@ -104,7 +113,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> refresh() async {
     if (_dead || _cid == null || _refreshing) return;
     _refreshing = true;
-    final cid = _cid;
+    final cid = _cid, epoch = _epoch;
     try {
       final rows = await session.client
           .from('calls')
@@ -112,7 +121,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
           .eq('couple_id', cid!)
           .order('created_at', ascending: false)
           .limit(1);
-      if (_dead || cid != _cid || rows.isEmpty) return;
+      if (_dead || epoch != _epoch || cid != _cid || rows.isEmpty) return;
       final row = Map<String, dynamic>.from(rows.first);
       if (call != null && call!['id'] != row['id'] && _peer != null) return;
       if (!liveCall(row, DateTime.now().toUtc())) {
@@ -132,7 +141,34 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         }
         return;
       }
+      if (call?['id'] != row['id']) {
+        echoSession = null;
+        aiRequested = false;
+      }
       call = row;
+      try {
+        final echo = await session.client
+            .from('echo_sessions')
+            .select()
+            .eq('call_id', row['id'] as String)
+            .maybeSingle();
+        if (_dead || epoch != _epoch || call?['id'] != row['id']) return;
+        echoSession = echo == null ? null : Map<String, dynamic>.from(echo);
+        if (_echoTakingOver &&
+            _peer != null &&
+            !_remoteSet &&
+            echoSession?['human_answer'] != null) {
+          await _peer!.setRemoteDescription(
+            RTCSessionDescription(
+              echoSession!['human_answer'] as String,
+              'answer',
+            ),
+          );
+          _remoteSet = true;
+        }
+      } catch (_) {
+        /* Older databases keep their existing call behavior. */
+      }
       if (_peer != null &&
           !_remoteSet &&
           row['caller_id'] == session.userId &&
@@ -142,7 +178,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         );
         _remoteSet = true;
       }
-      if (_remoteSet) _queueCandidates();
+      if (_remoteSet && !_echoTakingOver) _queueCandidates();
       _notify();
     } catch (_) {
       /* Poll again after a network interruption. */
@@ -179,6 +215,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {
       /* Direct connections remain available without a relay. */
     }
+    if (_dead || epoch != _epoch) throw StateError('Session changed');
     _peer = await createPeerConnection({
       'iceServers': ice,
       'sdpSemantics': 'unified-plan',
@@ -217,8 +254,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       };
       _peer!.onIceCandidate = (candidate) {
         if (_peer != activePeer) return;
-        if (candidate.candidate == null) return;
-        if (call == null) {
+        if (candidate.candidate == null || _echoTakingOver) return;
+        if (call == null || !_signalingReady) {
           _outbound.add(candidate);
         } else {
           unawaited(_candidate(candidate));
@@ -243,10 +280,13 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         if (state ==
             RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
           _disconnect?.cancel();
-          _disconnect = Timer(const Duration(seconds: 20), () => end('failed'));
+          _disconnect = Timer(
+            const Duration(seconds: 20),
+            () => _connectionFailed(),
+          );
         }
         if (state == RTCPeerConnectionState.RTCPeerConnectionStateFailed)
-          unawaited(end('failed'));
+          unawaited(_connectionFailed());
         _notify();
       };
       speaker = useVideo;
@@ -287,6 +327,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
       call = Map<String, dynamic>.from(row);
+      _signalingReady = true;
       for (final c in _outbound) {
         await _candidate(c);
       }
@@ -308,18 +349,31 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     error = null;
     _notify();
     try {
-      final id = call!['id'] as String;
+      final row = Map<String, dynamic>.from(call!), epoch = _epoch;
+      final id = row['id'] as String;
       await _setup(video);
+      if (_dead || epoch != _epoch || call?['id'] != id || !incoming) {
+        await _release();
+        return;
+      }
       await _peer!.setRemoteDescription(
-        RTCSessionDescription(call!['offer'] as String, 'offer'),
+        RTCSessionDescription(row['offer'] as String, 'offer'),
       );
       _remoteSet = true;
       final answer = await _peer!.createAnswer();
       await _peer!.setLocalDescription(answer);
-      await session.client
+      final claimed = await session.client
           .from('calls')
           .update({'answer': answer.sdp, 'state': 'connecting'})
-          .eq('id', id);
+          .eq('id', id)
+          .eq('state', 'ringing')
+          .select('id');
+      if (claimed.isEmpty) {
+        await _release();
+        await refresh();
+        return;
+      }
+      _signalingReady = true;
       for (final c in _outbound) {
         await _candidate(c);
       }
@@ -332,6 +386,137 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       await end('failed');
     } finally {
       _busy = false;
+      _notify();
+    }
+  }
+
+  Future<void> _connectionFailed() async {
+    if (_echoTakingOver && echoForMe) {
+      await _release();
+      error =
+          'The takeover connection stopped. The original caller remains with the bridge.';
+      _notify();
+    } else {
+      await end('failed');
+    }
+  }
+
+  Future<void> requestAiAnswer() async {
+    if (!incoming || video || _busy) return;
+    final id = call!['id'] as String, epoch = _epoch;
+    _busy = true;
+    error = null;
+    _notify();
+    try {
+      final device = await session.client
+          .from('echo_devices')
+          .select()
+          .eq('user_id', session.userId!)
+          .maybeSingle();
+      final beat = DateTime.tryParse('${device?['heartbeat']}');
+      if (device?['ready'] != true ||
+          beat == null ||
+          DateTime.now().toUtc().difference(beat.toUtc()).inSeconds >= 20) {
+        throw StateError(
+          'Your ECHO bridge is offline. Start it on your Mac, or answer normally.',
+        );
+      }
+      final prefs = await session.client
+          .from('echo_preferences')
+          .select('enabled')
+          .eq('couple_id', session.coupleId!)
+          .eq('user_id', session.userId!)
+          .maybeSingle();
+      if (prefs?['enabled'] != true)
+        throw StateError('Enable ECHO in Profile and settings first.');
+      if (_dead || epoch != _epoch || call?['id'] != id || !incoming) return;
+      await session.client.from('echo_requests').upsert({
+        'call_id': id,
+        'user_id': session.userId,
+      });
+      aiRequested = true;
+    } catch (e) {
+      if (epoch == _epoch)
+        error = e is StateError
+            ? '${e.message}'
+            : 'Could not request ECHO. You can answer normally.';
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
+  Future<void> takeOverEcho() async {
+    if (!echoForMe || _busy || _peer != null) return;
+    final id = call!['id'] as String, epoch = _epoch;
+    _busy = true;
+    error = null;
+    _echoTakingOver = true;
+    _notify();
+    try {
+      await _setup(false);
+      if (_dead || epoch != _epoch || call?['id'] != id) {
+        await _release();
+        return;
+      }
+      final peer = _peer!;
+      final gathered = Completer<void>();
+      peer.onIceGatheringState = (state) {
+        if (state == RTCIceGatheringState.RTCIceGatheringStateComplete &&
+            !gathered.isCompleted)
+          gathered.complete();
+      };
+      await peer.setLocalDescription(await peer.createOffer());
+      if (peer.iceGatheringState !=
+          RTCIceGatheringState.RTCIceGatheringStateComplete) {
+        await gathered.future.timeout(const Duration(seconds: 12));
+      }
+      if (_dead || epoch != _epoch || call?['id'] != id) {
+        await _release();
+        return;
+      }
+      final offer = await peer.getLocalDescription();
+      await session.client
+          .from('echo_sessions')
+          .update({'human_offer': offer!.sdp, 'human_answer': null})
+          .eq('call_id', id);
+      await refresh();
+      // A failed takeover releases only this phone's new leg. The original
+      // caller-to-bridge media connection continues answering with ECHO.
+      _timeout = Timer(const Duration(seconds: 30), () async {
+        if (_peer == peer && connection != 'RTCPeerConnectionStateConnected') {
+          await _release();
+          error =
+              'Takeover did not connect. ECHO is still on the call; try again.';
+          _notify();
+        }
+      });
+    } catch (_) {
+      await _release();
+      error = 'Could not take over. ECHO remains on the call. Please retry.';
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
+  Future<void> eraseEchoTranscript() async {
+    if (!echoForMe) return;
+    try {
+      // Disable future saves before clearing existing records.
+      await session.client
+          .from('echo_preferences')
+          .update({'retain_transcript': false})
+          .eq('couple_id', session.coupleId!)
+          .eq('user_id', session.userId!);
+      await session.client
+          .from('echo_sessions')
+          .update({'transcript': [], 'summary': '', 'important': ''})
+          .eq('call_id', call!['id'] as String);
+      await refresh();
+    } catch (_) {
+      error =
+          'Could not erase the transcript. Check your connection and retry.';
       _notify();
     }
   }
@@ -406,6 +591,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> end([String state = 'ended']) async {
     final id = call?['id'];
     call = null;
+    echoSession = null;
+    aiRequested = false;
     await _release();
     _notify();
     if (id != null) {
@@ -437,6 +624,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _peer = null;
     _stream = null;
     _remoteSet = false;
+    _echoTakingOver = false;
+    _signalingReady = false;
     _seen.clear();
     _outbound.clear();
     if (_rendering != null) {

@@ -25,3 +25,8 @@ __pycache__/
 ui-review/
 verification/
 release/
+
+# Authorized local bridge sessions, cached audio, Python environments
+private-echo-state/
+.venv/
+*.pyc

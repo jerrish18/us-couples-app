@@ -15,6 +15,7 @@ import '../../core/media.dart';
 import '../../core/notifications.dart';
 import 'backup.dart';
 import '../location/live_location.dart';
+import '../calls/echo_settings.dart';
 
 class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
@@ -412,6 +413,19 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
                     ),
                   ),
                   const Divider(),
+                  GlassCard(
+                    padding: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: const Icon(Icons.support_agent),
+                      title: const Text('ECHO receptionist'),
+                      subtitle: const Text('AI answering, voice and privacy'),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => EchoSettings(session: space.session),
+                        ),
+                      ),
+                    ),
+                  ),
                   Text(
                     'Comfort and privacy',
                     style: Theme.of(context).textTheme.titleLarge,

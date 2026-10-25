@@ -1,7 +1,7 @@
 name: Flutter validation
 on:
   push:
-    branches: [build/us-v1-5, feat/us-1-6]
+    branches: [build/us-v1-5, feat/us-1-6, development/echo-reliability]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -47,7 +47,7 @@ jobs:
         with:
           node-version: '24'
       - name: Test AI server logic
-        run: node --test supabase/functions/us-ai/logic.test.ts
+        run: node --test supabase/functions/us-ai/*.test.ts
       - name: Test auth validation
         run: flutter test
       - name: Build signed release candidate

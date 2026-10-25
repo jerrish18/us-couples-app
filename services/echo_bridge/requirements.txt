@@ -1,0 +1,5 @@
+aiohttp==3.13.2
+aiortc==1.14.0
+httpx==0.28.1
+faster-whisper==1.2.1
+numpy==2.2.6
