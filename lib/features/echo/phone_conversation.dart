@@ -154,7 +154,8 @@ class PhoneConversation {
             })
             .eq('call_id', callId)
             .eq('callee_id', uid)
-            .select('transcript');
+            .select('transcript')
+            .timeout(const Duration(seconds: 12));
         final actual = saved.isEmpty ? null : saved.first['transcript'];
         result.complete(
           actual is List &&
@@ -326,7 +327,8 @@ class PhoneConversation {
       await session.client
           .from('echo_sessions')
           .update({'state': 'human'})
-          .eq('call_id', callId);
+          .eq('call_id', callId)
+          .timeout(const Duration(seconds: 8));
     } catch (_) {
       // The microphone takeover has already succeeded; keep it active even if
       // optional session metadata cannot be synchronized right now.
@@ -356,7 +358,7 @@ class PhoneConversation {
     await PhoneAiRuntime.native
         .invokeMethod('interrupt')
         .catchError((_) => null);
-    await _writes.catchError((Object _) {});
+    await _writes.timeout(const Duration(seconds: 2)).catchError((Object _) {});
     transcript.clear();
     history.clear();
   }
