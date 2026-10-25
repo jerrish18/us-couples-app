@@ -268,11 +268,14 @@ class _AiComposerPanelState extends State<AiComposerPanel> {
           ..sort(
             (a, b) => '${b['created_at']}'.compareTo('${a['created_at']}'),
           );
-    final selected = Set<String>.of(_ids);
+    final available = rows.map((m) => m['id']).toSet();
+    final selected = _ids.where(available.contains).toSet();
     final value = await showModalBottomSheet<Set<String>>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      clipBehavior: Clip.antiAlias,
       builder: (sheet) => StatefulBuilder(
         builder: (context, update) => SizedBox(
           height: MediaQuery.sizeOf(context).height * .65,
@@ -294,7 +297,17 @@ class _AiComposerPanelState extends State<AiComposerPanel> {
                   children: [
                     for (final m in rows.take(150))
                       CheckboxListTile(
+                        key: ValueKey('ai-context-${m['id']}'),
                         value: selected.contains(m['id']),
+                        selected: selected.contains(m['id']),
+                        selectedTileColor: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer,
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        checkColor: Theme.of(context).colorScheme.onPrimary,
+                        tileColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerLow,
                         title: Text(
                           '${m['body']}',
                           maxLines: 3,

@@ -1,6 +1,7 @@
 import '../../core/design.dart';
 
 import 'dart:async';
+import 'video_source.dart';
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -31,7 +32,7 @@ class _VoiceBubbleState extends State<VoiceBubble> {
     try {
       if (!_loaded) {
         await _player.setFilePath(
-          widget.message['_local_file'] as String? ??
+          await existingVideoFile(widget.message['_local_file'] as String?) ??
               await widget.space.mediaFile(
                 widget.message['media_path'] as String,
               ),

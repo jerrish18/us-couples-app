@@ -104,10 +104,11 @@ Future<void> showPanel(
   TextEditingController text, {
   String task = 'rewrite',
   String? messageId,
+  Brightness brightness = Brightness.light,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      theme: usTheme(Brightness.light),
+      theme: usTheme(brightness),
       home: Scaffold(
         body: Column(
           children: [
@@ -402,6 +403,49 @@ void main() {
       expect(ai.ids, ['valid']);
     },
   );
+
+  for (final brightness in Brightness.values) {
+    testWidgets(
+      'message picker is opaque with visible selection in ${brightness.name}',
+      (tester) async {
+        final space = ChatSpace(fixtures.PreviewSession());
+        space.rows['messages'] = [
+          {
+            'id': 'valid',
+            'body': 'Dinner tomorrow?',
+            'sender_id': 'two',
+            'created_at': '2026-10-23',
+          },
+        ];
+        final ai = ComposerAi(space), text = TextEditingController();
+        await showPanel(
+          tester,
+          ai,
+          text,
+          task: 'reply',
+          brightness: brightness,
+        );
+        await tester.tap(find.text('0 messages selected'));
+        await tester.pumpAndSettle();
+        final sheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
+        expect(sheet.backgroundColor!.a, 1);
+        final row = find.byKey(const ValueKey('ai-context-valid'));
+        expect(tester.widget<CheckboxListTile>(row).selected, false);
+        await tester.tap(row);
+        await tester.pumpAndSettle();
+        final tile = tester.widget<CheckboxListTile>(row);
+        expect(tile.selected, true);
+        expect(tile.value, true);
+        expect(tile.selectedTileColor!.a, 1);
+        expect(tile.activeColor, isNot(tile.selectedTileColor));
+        await tester.tap(find.text('Use selected messages'));
+        await tester.pumpAndSettle();
+        await generate(tester);
+        expect(ai.ids, ['valid']);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('a task draft requires explicit review and saves only once', (
     tester,

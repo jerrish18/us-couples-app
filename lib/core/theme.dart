@@ -7,8 +7,9 @@ class VisualCapabilities {
   static Color? seed;
   static Future<void> initialize() async {
     try {
-      final values = await const MethodChannel('us/presentation')
-          .invokeMapMethod<String, dynamic>('capabilities');
+      final values = await const MethodChannel(
+        'us/presentation',
+      ).invokeMapMethod<String, dynamic>('capabilities');
       sdk = values?['sdk'] as int? ?? 24;
       final value = values?['seed'] as int?;
       if (value != null) seed = Color(value);
@@ -354,8 +355,9 @@ ThemeData usTheme(Brightness brightness) {
         borderRadius: BorderRadius.circular(UsTokens.s24),
       ),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
-      backgroundColor: UsColors.clear,
+    // Native sheets need an opaque surface. Glass sheets opt into transparency.
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: colors.surfaceContainerLow,
       surfaceTintColor: UsColors.clear,
       showDragHandle: false,
       elevation: 0,
