@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/session.dart';
 import 'echo_history.dart';
+import '../echo/phone_runtime.dart';
+import '../echo/phone_models.dart';
 
 /// Per-partner settings. Authentication and bridge secrets stay on the Mac.
 class EchoSettings extends StatefulWidget {
@@ -11,6 +15,7 @@ class EchoSettings extends StatefulWidget {
 }
 
 class _EchoSettingsState extends State<EchoSettings> {
+  final phone = PhoneAiRuntime.instance;
   final _greeting = TextEditingController();
   Map<String, dynamic> _prefs = {
     'enabled': false,
@@ -45,6 +50,7 @@ class _EchoSettingsState extends State<EchoSettings> {
 
   Future<void> _load() async {
     try {
+      await phone.initialize();
       final rows = await widget.session.client
           .from('echo_preferences')
           .select()
@@ -82,12 +88,20 @@ class _EchoSettingsState extends State<EchoSettings> {
       _error = null;
     });
     try {
+      if (phone.preferPhone &&
+          _prefs['enabled'] == true &&
+          (!phone.ready || phone.language != _prefs['language']))
+        throw StateError(
+          'Download and prepare the selected phone models and language first.',
+        );
       await widget.session.client.from('echo_preferences').upsert({
         ..._prefs,
+        'host': phone.host,
         'couple_id': _cid,
         'user_id': _uid,
         'greeting': _greeting.text.trim(),
       });
+      phone.preferencesChanged?.call();
       if (_current)
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('ECHO settings saved for your account')),
@@ -115,8 +129,185 @@ class _EchoSettingsState extends State<EchoSettings> {
     return TimeOfDay(hour: value ~/ 60, minute: value % 60).format(context);
   }
 
+  Future<void> _task(Future<void> Function() action) async {
+    if (_saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await action();
+    } catch (e) {
+      if (_current)
+        setState(
+          () => _error = e is StateError
+              ? '${e.message}'
+              : e is PlatformException
+              ? (e.message ??
+                    'Phone AI is unavailable. Check offline voices and retry.')
+              : 'Phone setup did not finish. Check your connection, RAM and storage, then retry.',
+        );
+    } finally {
+      if (_current) setState(() => _saving = false);
+    }
+  }
+
+  List<Widget> _phoneControls(BuildContext context) {
+    final ram = (phone.capabilities['ram'] as num? ?? 0) / 1073741824;
+    final ready = phone.ready && phone.language == _prefs['language'];
+    final pack = phone.plus ? phoneLlmPlus : phoneLlmLite;
+    final mb =
+        (pack.bytes + phoneWhisper.fold<int>(0, (n, f) => n + f.bytes)) /
+        1000000;
+    return [
+      Text(
+        '${phone.capabilities['model'] ?? 'This Android phone'}${ram > 0 ? ' · ${ram.toStringAsFixed(1)} GB RAM' : ''}',
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'The AI and speech models run locally after downloading. No Mac or AI subscription is required. Calls still need internet.',
+      ),
+      if (!phone.supported)
+        const Text(
+          'Phone AI needs a supported 64-bit Android 9+ device. Normal calls stay available.',
+        ),
+      const SizedBox(height: 12),
+      DropdownButtonFormField<bool>(
+        initialValue: phone.plus,
+        decoration: const InputDecoration(labelText: 'Phone model pack'),
+        items: [
+          const DropdownMenuItem(
+            value: false,
+            child: Text('Light · for 6 GB and 8 GB phones'),
+          ),
+          DropdownMenuItem(
+            value: true,
+            enabled: ram >= 7,
+            child: const Text('Larger · 8 GB RAM or more'),
+          ),
+        ],
+        onChanged: _saving || phone.preparing
+            ? null
+            : (value) => _task(() => phone.setPlus(value!)),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Download: about ${mb.round()} MB, plus Android offline voice data. Use Wi-Fi for the download. Light is the initial choice for both phones; larger models may improve answers but use more RAM.',
+      ),
+      const SizedBox(height: 8),
+      Text(
+        phone.preparing
+            ? 'Preparing phone AI…'
+            : phone.models.busy
+            ? phone.models.status
+            : ready
+            ? 'Ready on this phone'
+            : phone.status,
+      ),
+      if (phone.models.busy)
+        LinearProgressIndicator(value: phone.models.progress),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          FilledButton.icon(
+            onPressed: phone.models.busy
+                ? phone.models.pause
+                : _saving || !phone.supported
+                ? null
+                : () => _task(() async {
+                    await phone.stopReady();
+                    await phone.unload();
+                    final cap = Map<String, dynamic>.from(
+                      await PhoneAiRuntime.native.invokeMethod('capabilities')
+                          as Map,
+                    );
+                    var needed = 0;
+                    for (final f in phone.models.files(phone.plus)) {
+                      final path = await phone.models.path(f);
+                      final done = File(path),
+                          marker = File('$path.verified-${f.hash}'),
+                          part = File('$path.part');
+                      if (await done.exists() &&
+                          await done.length() == f.bytes &&
+                          await marker.exists())
+                        continue;
+                      final existing = await part.exists()
+                          ? await part.length()
+                          : 0;
+                      needed += f.bytes - (existing > f.bytes ? 0 : existing);
+                    }
+                    if ((cap['freeStorage'] as num? ?? 0) < needed + 250000000)
+                      throw StateError(
+                        'Free up at least ${((needed + 250000000) / 1000000).ceil()} MB of additional storage, then resume.',
+                      );
+                    await phone.models.install(phone.plus);
+                  }),
+            icon: Icon(phone.models.busy ? Icons.pause : Icons.download),
+            label: Text(
+              phone.models.busy ? 'Pause download' : 'Download / resume models',
+            ),
+          ),
+          OutlinedButton(
+            onPressed: _saving || phone.preparing || !phone.supported
+                ? null
+                : () => _task(() => phone.prepare('${_prefs['language']}')),
+            child: const Text('Prepare and test phone AI'),
+          ),
+          TextButton(
+            onPressed: _saving || !ready
+                ? null
+                : () => _task(() async {
+                    await PhoneAiRuntime.native.invokeMethod('previewVoice');
+                  }),
+            child: const Text('Listen to offline voice'),
+          ),
+          TextButton(
+            onPressed: _saving
+                ? null
+                : () => _task(() async {
+                    await PhoneAiRuntime.native.invokeMethod('installVoice');
+                  }),
+            child: const Text('Install offline voice data'),
+          ),
+          TextButton(
+            onPressed: _saving
+                ? null
+                : () => _task(() async {
+                    await phone.stopReady();
+                    await phone.unload();
+                    await phone.models.remove(phone.plus);
+                  }),
+            child: const Text('Remove downloaded pack'),
+          ),
+        ],
+      ),
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Keep ECHO ready in the background'),
+        subtitle: const Text(
+          'Shows a persistent notification and uses more battery. Start this while Us is open. Android can still stop the app; a force-stopped or offline phone cannot answer.',
+        ),
+        value: phone.readyService,
+        onChanged: _saving || (!ready && !phone.readyService)
+            ? null
+            : (value) =>
+                  _task(() => value ? phone.startReady() : phone.stopReady()),
+      ),
+      const Text(
+        'Tamil and Tanglish accuracy and voice quality need review. On smaller phones, replies may take longer. You can take over without restarting the call.',
+      ),
+      const SizedBox(height: 12),
+    ];
+  }
+
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([phone, phone.models]),
+    builder: (context, _) => _page(context),
+  );
+  Widget _page(BuildContext context) => Scaffold(
     backgroundColor: Theme.of(context).colorScheme.surface,
     appBar: AppBar(title: const Text('ECHO receptionist')),
     body: _loading
@@ -124,24 +315,48 @@ class _EchoSettingsState extends State<EchoSettings> {
         : ListView(
             padding: const EdgeInsets.all(20),
             children: [
-              Text(
-                _online
-                    ? 'Your voice bridge is ready'
-                    : 'Your voice bridge is offline',
-                style: Theme.of(context).textTheme.titleLarge,
+              DropdownButtonFormField<String>(
+                initialValue: phone.host,
+                decoration: const InputDecoration(labelText: 'Run ECHO on'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'phone',
+                    child: Text('This phone · no Mac needed'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'bridge',
+                    child: Text('Optional Mac bridge'),
+                  ),
+                ],
+                onChanged: _saving
+                    ? null
+                    : (value) async {
+                        await phone.setHost(value!);
+                        if (mounted) setState(() {});
+                      },
               ),
               const SizedBox(height: 12),
-              const Text(
-                'ECHO answers Us voice calls as AI. Your caller always hears an AI disclosure. Your Mac must be awake, online and running the bridge. Video calls keep their normal Answer button.',
-              ),
+              if (phone.preferPhone)
+                ..._phoneControls(context)
+              else ...[
+                Text(
+                  _online
+                      ? 'Your Mac bridge is ready'
+                      : 'Your selected Mac bridge is offline',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const Text(
+                  'This optional mode needs your Mac awake and running the ECHO bridge. Select This phone to answer without a Mac.',
+                ),
+                TextButton.icon(
+                  onPressed: _saving ? null : _load,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Check Mac bridge'),
+                ),
+              ],
               const SizedBox(height: 12),
               const Text(
-                'Start the free bridge from services/echo_bridge in the project. Authorize it with its own Us sign-in session on your trusted Mac. No API key or app session needs to be copied from this phone.',
-              ),
-              TextButton.icon(
-                onPressed: _saving ? null : _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Check bridge status'),
+                'ECHO answers Us voice calls as AI. Your caller always hears an AI disclosure. Video calls keep their normal Answer button.',
               ),
               OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).push(

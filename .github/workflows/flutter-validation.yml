@@ -1,7 +1,7 @@
 name: Flutter validation
 on:
   push:
-    branches: [build/us-v1-5, feat/us-1-6, development/echo-reliability]
+    branches: [build/us-v1-5, feat/us-1-6, development/echo-reliability, development/echo-on-device]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -50,6 +50,8 @@ jobs:
         run: node --test supabase/functions/us-ai/*.test.ts
       - name: Test auth validation
         run: flutter test
+      - name: Test native ECHO audio privacy and resampling
+        run: android/gradlew --project-dir android app:testDebugUnitTest
       - name: Build signed release candidate
         env:
           US_KEYSTORE_B64: ${{ secrets.US_KEYSTORE_B64 }}

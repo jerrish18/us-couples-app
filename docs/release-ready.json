@@ -23,6 +23,6 @@
   },
   "native_page_alignment": "All 12 checked 64-bit shared libraries have ELF LOAD alignment >= 16 KB and stored ZIP entries aligned to 16 KB.",
   "apk_sha256": "bd91c21c368b2c334ff430763b32c3e3af0968dd9d04bd5077ef529c4491f1b4",
-  "candidate_version": "1.9.0",
-  "candidate_status": "ECHO candidate: requires current signed build and device verification; previous validation applies only to v1.8.0"
+  "candidate_version": "1.10.0",
+  "candidate_status": "On-phone ECHO candidate: physical Pixel 8 / 6 GB device validation pending"
 }

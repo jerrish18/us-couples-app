@@ -96,3 +96,12 @@ gradle.write_text(gradle.read_text().replace('compileSdk = flutter.compileSdkVer
 # Preserve JNI methods used by the WebRTC native library in release builds.
 rules=Path('android/app/proguard-rules.pro')
 rules.write_text(rules.read_text()+'\n-keep class org.webrtc.** { *; }\n-keep class com.cloudwebrtc.webrtc.** { *; }\n')
+
+# On-phone AI uses the existing engine, native WebRTC audio, and offline TTS.
+for name in ['EchoPcm.kt','EchoPhoneNative.kt','EchoPhoneService.kt']:
+    shutil.copyfile(Path('android_templates')/name,activity.parent/name)
+text=manifest.read_text().replace('</application>','<service android:name=".EchoPhoneService" android:exported="false" android:foregroundServiceType="microphone"/></application>')
+manifest.write_text(text)
+test_dir=Path('android/app/src/test/kotlin/com/jerrish18/us');test_dir.mkdir(parents=True,exist_ok=True)
+shutil.copyfile('android_templates/tests/EchoPcmTest.kt',test_dir/'EchoPcmTest.kt')
+gradle.write_text(gradle.read_text()+'\ndependencies { testImplementation("junit:junit:4.13.2") }\n')
