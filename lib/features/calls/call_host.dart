@@ -44,7 +44,11 @@ class CallScreen extends StatelessWidget {
               children: [
                 const SizedBox(height: 20),
                 Text(
-                  c.incoming
+                  c.echoActive
+                      ? (c.echoSession?['state'] == 'human'
+                            ? 'Your person is on the call'
+                            : 'ECHO is answering as AI')
+                      : c.incoming
                       ? 'Your person is calling'
                       : c.call?['state'] == 'ringing'
                       ? 'Calling your person…'
@@ -61,7 +65,9 @@ class CallScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 20),
                 Expanded(
-                  child: c.video && !c.incoming
+                  child: c.echoActive
+                      ? EchoCallDetails(service: c)
+                      : c.video && !c.incoming
                       ? Stack(
                           children: [
                             Positioned.fill(
@@ -97,6 +103,10 @@ class CallScreen extends StatelessWidget {
                           ),
                         ),
                 ),
+                if (c.error != null)
+                  Text(c.error!, style: TextStyle(color: colors.error)),
+                if (c.aiRequested && c.incoming)
+                  const Text('ECHO requested. You can still answer normally.'),
                 if (c.busy) const LinearProgressIndicator(),
                 const SizedBox(height: 20),
                 Wrap(
@@ -110,7 +120,23 @@ class CallScreen extends StatelessWidget {
                         icon: const Icon(Icons.call),
                         label: const Text('Answer'),
                       ),
-                    if (!c.incoming) ...[
+                    if (c.incoming && !c.video)
+                      OutlinedButton.icon(
+                        onPressed: c.busy || c.aiRequested
+                            ? null
+                            : c.requestAiAnswer,
+                        icon: const Icon(Icons.support_agent),
+                        label: const Text('AI Answer'),
+                      ),
+                    if (c.echoForMe && c.echoSession?['state'] != 'human')
+                      ExpressiveButton.icon(
+                        onPressed: c.canTakeOverEcho ? c.takeOverEcho : null,
+                        icon: const Icon(Icons.call),
+                        label: const Text('Take over call'),
+                      ),
+                    if (!c.incoming &&
+                        (!c.echoForMe ||
+                            c.echoSession?['state'] == 'human')) ...[
                       IconButton.filledTonal(
                         tooltip: c.muted ? 'Unmute' : 'Mute',
                         onPressed: c.toggleMute,
@@ -157,6 +183,57 @@ class CallScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class EchoCallDetails extends StatelessWidget {
+  const EchoCallDetails({super.key, required this.service});
+  final CallService service;
+  @override
+  Widget build(BuildContext context) {
+    final echo = service.echoSession ?? const <String, dynamic>{};
+    final transcript = (echo['transcript'] as List? ?? const [])
+        .whereType<Map>();
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      children: [
+        const Icon(Icons.support_agent, size: 64),
+        const SizedBox(height: 16),
+        Text(
+          echo['state'] == 'human'
+              ? 'ECHO has handed the conversation to your partner.'
+              : 'You are speaking with ECHO, an AI receptionist. A partner can take over this call.',
+          textAlign: TextAlign.center,
+        ),
+        if ('${echo['important'] ?? ''}'.isNotEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                'Flagged caller messages (keyword matches)\n${echo['important']}',
+              ),
+            ),
+          ),
+        if (transcript.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'No saved transcript. Saving is controlled by the partner receiving this call.',
+            ),
+          ),
+        for (final line in transcript)
+          ListTile(
+            title: Text('${line['text'] ?? ''}'),
+            subtitle: Text(line['role'] == 'caller' ? 'Caller' : 'ECHO · AI'),
+          ),
+        if (service.echoForMe && transcript.isNotEmpty)
+          TextButton.icon(
+            onPressed: service.eraseEchoTranscript,
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Erase transcript and stop saving'),
+          ),
+      ],
     );
   }
 }

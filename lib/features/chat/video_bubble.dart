@@ -20,6 +20,7 @@ class _VideoBubbleState extends State<VideoBubble> with WidgetsBindingObserver {
   String? _error;
   bool _loading = false, _dead = false;
   int _generation = 0;
+  bool _usedLocal = false, _remoteRecovery = false;
   @override
   void initState() {
     super.initState();
@@ -37,6 +38,8 @@ class _VideoBubbleState extends State<VideoBubble> with WidgetsBindingObserver {
                 widget.message['_local_file'])) {
       _generation++;
       _loading = false;
+      _usedLocal = false;
+      _remoteRecovery = false;
       _error = null;
       _release();
     }
@@ -87,7 +90,11 @@ class _VideoBubbleState extends State<VideoBubble> with WidgetsBindingObserver {
     final remote = widget.message['media_path'] as String?;
     if (local != null) {
       try {
-        return await _initialize(VideoPlayerController.file(File(local)));
+        final player = await _initialize(
+          VideoPlayerController.file(File(local)),
+        );
+        _usedLocal = true;
+        return player;
       } catch (_) {
         if (remote == null) rethrow;
       }
@@ -98,6 +105,7 @@ class _VideoBubbleState extends State<VideoBubble> with WidgetsBindingObserver {
       );
     // A new signed URL on every retry avoids stale cached downloads/expired URLs
     // and lets Android request media ranges while the video buffers.
+    _usedLocal = false;
     final url = await widget.space.mediaUrl(remote);
     return _initialize(VideoPlayerController.networkUrl(Uri.parse(url)));
   }
@@ -146,6 +154,17 @@ class _VideoBubbleState extends State<VideoBubble> with WidgetsBindingObserver {
 
   void _changed() {
     if (!mounted) return;
+    if (_player?.value.hasError == true &&
+        _usedLocal &&
+        !_remoteRecovery &&
+        widget.message['_pending'] != true &&
+        widget.message['media_path'] != null) {
+      _remoteRecovery = true;
+      _usedLocal = false;
+      _release();
+      unawaited(_play());
+      return;
+    }
     setState(() {
       if (_player?.value.hasError == true)
         _error = 'Playback stopped. Tap to retry.';

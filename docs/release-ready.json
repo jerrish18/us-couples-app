@@ -1,5 +1,5 @@
 {
-  "ready": true,
+  "ready": false,
   "version": "1.8.0",
   "build_number": 8,
   "validated_source_commit": "2e8fd55c261a1249e814a10a04c191cc1c817d02",
@@ -22,5 +22,7 @@
     "ezbr_sha256": "a67e2c63bf004fea56246f338aeafa27af194b35bfe0e35d58ce587ca7d603c3"
   },
   "native_page_alignment": "All 12 checked 64-bit shared libraries have ELF LOAD alignment >= 16 KB and stored ZIP entries aligned to 16 KB.",
-  "apk_sha256": "bd91c21c368b2c334ff430763b32c3e3af0968dd9d04bd5077ef529c4491f1b4"
+  "apk_sha256": "bd91c21c368b2c334ff430763b32c3e3af0968dd9d04bd5077ef529c4491f1b4",
+  "candidate_version": "1.9.0",
+  "candidate_status": "ECHO candidate: requires current signed build and device verification; previous validation applies only to v1.8.0"
 }
