@@ -2,6 +2,7 @@
 
 - Add verified/resumable on-phone Qwen and multilingual Whisper downloads, conservative 6/8 GB profiles and offline Android TTS checks.
 - Route ECHO call audio locally and restore the same microphone/peer on human takeover. Prevent raw microphone audio and interrupted speech chunks from reaching the caller during AI answering.
+- Prepare bounded fixed AI disclosures and failure speech before answering, reject empty local responses, apply selected offline voice styles, and keep human takeover active if metadata synchronization fails.
 - Add host-aware answer arbitration, opt-in foreground background readiness, model/voice setup, live ephemeral transcripts and readiness-aware AI Answer controls.
 - Preserve normal calls and the optional Mac bridge. Keep production readiness false pending physical handset, Tamil/Tanglish and background tests.
 

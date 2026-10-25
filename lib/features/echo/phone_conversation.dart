@@ -4,39 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import '../../core/session.dart';
 import 'phone_runtime.dart';
-
-const phoneDisclosure = {
-  'English':
-      'I am ECHO, an AI assistant answering for your partner. You are speaking with AI. You can leave a message or your partner can take over.',
-  'Tamil':
-      'நான் எக்கோ, உங்கள் துணையின் ஏஐ உதவியாளர். நீங்கள் செயற்கை நுண்ணறிவுடன் பேசுகிறீர்கள். உங்கள் செய்தியைச் சொல்லலாம்.',
-  'Tanglish':
-      'நான் எக்கோ, உங்க பார்ட்னரோட ஏஐ அசிஸ்டன்ட். நீங்க ஏஐ கூட பேசுறீங்க. உங்க மெசேஜ் சொல்லுங்க.',
-};
-const phoneSavedAcknowledgement = {
-  'English':
-      'Your message has been saved for your partner. Is there anything else?',
-  'Tamil':
-      'உங்கள் செய்தி உங்கள் துணைக்காக சேமிக்கப்பட்டது. வேறு ஏதாவது சொல்ல வேண்டுமா?',
-  'Tanglish':
-      'உங்க மெசேஜ் உங்க பார்ட்னருக்காக சேவ் பண்ணியாச்சு. வேற ஏதாவது சொல்லணுமா?',
-};
-const _unsaved = {
-  'English':
-      'I heard you, but your message was not saved. Please send important messages in Us chat.',
-  'Tamil':
-      'உங்கள் செய்தி சேமிக்கப்படவில்லை. முக்கியமான செய்திகளை Us அரட்டையில் அனுப்புங்கள்.',
-  'Tanglish':
-      'உங்க மெசேஜ் சேவ் பண்ணலை. முக்கியமான மெசேஜை Us சாட்டில் அனுப்புங்க.',
-};
-const _noSpeech = {
-  'English':
-      'I could not understand that clearly. Please repeat, or send a message in Us chat.',
-  'Tamil':
-      'நீங்கள் சொன்னது தெளிவாகப் புரியவில்லை. மீண்டும் சொல்லுங்கள், அல்லது Us அரட்டையில் அனுப்புங்கள்.',
-  'Tanglish':
-      'நீங்க சொன்னது தெளிவா புரியலை. மறுபடி சொல்லுங்க, இல்லை Us சாட்டில் மெசேஜ் அனுப்புங்க.',
-};
+import 'phone_phrases.dart';
 
 /// Owns one local AI conversation; it never owns or closes the WebRTC transport.
 class PhoneConversation {
@@ -132,10 +100,9 @@ class PhoneConversation {
 
   Future<void> _say(String text, {bool disclosure = false}) async {
     if (!current) return;
-    await PhoneAiRuntime.native.invokeMethod('speak', {
-      'text': text,
-      'disclosure': disclosure,
-    });
+    await PhoneAiRuntime.native
+        .invokeMethod('speak', {'text': text, 'disclosure': disclosure})
+        .timeout(const Duration(seconds: 30));
     if (current) {
       _append('echo', text);
       _notify();
@@ -230,7 +197,7 @@ class PhoneConversation {
           caller = await runtime.speech.transcribe(pcm);
           if (!current || generation != _generation) continue;
           if (caller.trim().isEmpty) {
-            await _say(_noSpeech[language]!);
+            await _say(phoneNoSpeech[language]!);
             continue;
           }
           caller = caller.substringBounded(1200);
@@ -285,16 +252,19 @@ class PhoneConversation {
             await _say(buffer.trim());
             spoken += buffer.trim();
           }
+          if (current && generation == _generation && spoken.trim().isEmpty)
+            throw StateError('The local model returned no reply.');
         } catch (e) {
           runtime.text.cancel();
           if (current &&
               generation == _generation &&
               !(e is PlatformException && e.code == 'tts_cancelled')) {
             try {
+              await PhoneAiRuntime.native.invokeMethod('interrupt');
               await _say(
                 caller.isEmpty
-                    ? _noSpeech[language]!
-                    : (_saved ? _savedMessage : _unsaved[language]!),
+                    ? phoneNoSpeech[language]!
+                    : (_saved ? _savedMessage : phoneUnsaved[language]!),
               );
             } catch (_) {
               status = 'AI speech unavailable. Take over to speak normally.';
@@ -352,10 +322,15 @@ class PhoneConversation {
     human = true;
     runtime.localCall = false;
     status = 'You are on the call';
-    await session.client
-        .from('echo_sessions')
-        .update({'state': 'human'})
-        .eq('call_id', callId);
+    try {
+      await session.client
+          .from('echo_sessions')
+          .update({'state': 'human'})
+          .eq('call_id', callId);
+    } catch (_) {
+      // The microphone takeover has already succeeded; keep it active even if
+      // optional session metadata cannot be synchronized right now.
+    }
     _notify();
   }
 

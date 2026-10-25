@@ -60,7 +60,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
             phone.ready &&
             _echoPrefs?['enabled'] == true &&
             _echoPrefs?['host'] == 'phone' &&
-            phone.language == _echoPrefs?['language'];
+            phone.language == _echoPrefs?['language'] &&
+            phone.voice == _echoPrefs?['voice'];
       if (call != null) _schedulePhoneAnswer(call!);
       _notify();
     }
@@ -177,7 +178,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
           prefs['host'] == 'phone' &&
           _foreground &&
           await phone.models.available(phone.plus)) {
-        await phone.prepare('${prefs['language']}');
+        await phone.prepare(
+          '${prefs['language']}',
+          selectedVoice: '${prefs['voice']}',
+        );
         if (_dead || epoch != _epoch) return;
         if (phone.keepReady && _foreground) await phone.startReady();
         _phoneChanged();
@@ -248,7 +252,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
                 phone.ready &&
                 prefs?['enabled'] == true &&
                 prefs?['host'] == 'phone' &&
-                phone.language == prefs?['language'];
+                phone.language == prefs?['language'] &&
+                phone.voice == prefs?['voice'];
             aiAvailability = phone.ready
                 ? 'Enable and save phone answering in ECHO settings'
                 : 'Download and prepare models in ECHO settings';
@@ -667,7 +672,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         throw StateError(
           'Enable and save phone answering in ECHO settings first.',
         );
-      if (phone.language != prefs?['language'])
+      if (phone.language != prefs?['language'] ||
+          phone.voice != prefs?['voice'])
         throw StateError('Prepare the selected language in ECHO settings.');
       if (_dead || epoch != _epoch || call?['id'] != id || !incoming) return;
       await _setup(false);

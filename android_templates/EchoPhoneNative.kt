@@ -33,12 +33,15 @@ class EchoPhoneNative(private val context:Context, engine:FlutterEngine) : Event
     private var ttsReady=false
     private val voiceWaiters=mutableListOf<Pair<String,MethodChannel.Result>>()
     private var language="English"
+    private var voiceStyle="default"
     @Volatile private var ai=false
     @Volatile private var listenAfter=Long.MAX_VALUE
     private var attached=false
-    private var generation=0
+    @Volatile private var generation=0
     private var next=0
-    private data class Speech(val generation:Int,val result:MethodChannel.Result,val file:File,var rate:Int=16000,var format:Int=AudioFormat.ENCODING_PCM_16BIT,var channels:Int=1,var bytes:Int=0)
+    private data class Speech(val generation:Int,val result:MethodChannel.Result,val file:File,var rate:Int=16000,var format:Int=AudioFormat.ENCODING_PCM_16BIT,var channels:Int=1,var bytes:Int=0,val cacheText:String?=null,val chunks:MutableList<FloatArray> = mutableListOf())
+    private data class PreparedSpeech(val rate:Int,val chunks:List<FloatArray>)
+    private val prepared=mutableMapOf<String,PreparedSpeech>()
     private val speaking=mutableMapOf<String,Speech>()
     private val output=EchoPcmQueue()
     private val gate=EchoVoiceGate({
@@ -78,7 +81,13 @@ class EchoPhoneNative(private val context:Context, engine:FlutterEngine) : Event
     override fun onMethodCall(call:MethodCall,result:MethodChannel.Result) {
         try {when(call.method){
             "capabilities"->result.success(capabilities())
-            "prepareVoice"->prepareVoice(call.argument<String>("language")?:"English",result)
+            "prepareVoice"->{
+                val style=call.argument<String>("voice")?:"default"
+                val selected=call.argument<String>("language")?:"English"
+                if(style!=voiceStyle||selected!=language)prepared.clear()
+                voiceStyle=style
+                prepareVoice(selected,result)
+            }
             "testVoice"->{
                 check(ttsReady)
                 val id="${generation}-${++next}"
@@ -88,6 +97,17 @@ class EchoPhoneNative(private val context:Context, engine:FlutterEngine) : Event
                 if(tts!!.synthesizeToFile(text,Bundle(),file,id)!=TextToSpeech.SUCCESS)finish(id,"Offline voice did not start")
             }
             "previewVoice"->{check(ttsReady);tts!!.speak(if(language=="English")"Hello. I am ECHO, your AI assistant." else "வணக்கம். நான் உங்கள் ஏஐ உதவியாளர் எக்கோ.",TextToSpeech.QUEUE_FLUSH,Bundle(),"preview");result.success(null)}
+            "cacheVoice"->{
+                check(ttsReady&&!ai)
+                val text=call.argument<String>("text")?.take(600)?:error("Missing phrase")
+                if(prepared.containsKey(text))result.success(null)else{
+                    check(prepared.size<6)
+                    val id="${generation}-${++next}"
+                    val file=File.createTempFile("echo-prepared-",".wav",context.cacheDir)
+                    synchronized(speaking){speaking[id]=Speech(generation,result,file,cacheText=text)}
+                    if(tts!!.synthesizeToFile(text,Bundle(),file,id)!=TextToSpeech.SUCCESS)finish(id,"Offline phrase could not start")
+                }
+            }
             "installVoice"->{context.startActivity(Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));result.success(null)}
             "startReady"->{ContextCompat.startForegroundService(context,Intent(context,EchoPhoneService::class.java));result.success(null)}
             "stopReady"->{context.stopService(Intent(context,EchoPhoneService::class.java));result.success(null)}
@@ -124,13 +144,17 @@ class EchoPhoneNative(private val context:Context, engine:FlutterEngine) : Event
         val code=if(selected=="English")"en" else "ta"
         val voice=tts?.voices?.filter{it.locale.language==code&&!it.isNetworkConnectionRequired&&!(it.features?.contains("notInstalled")?:false)}?.sortedBy{if(it.locale.country=="IN")0 else 1}?.firstOrNull()
         if(voice==null){result.error("missing_voice","Install an offline ${if(code=="ta")"Tamil" else "English"} voice in Android speech settings.",null);return}
-        tts?.voice=voice;tts?.setSpeechRate(.95f)
+        tts?.voice=voice
+        tts?.setSpeechRate(when(voiceStyle){"soft"->.90f;"bright"->1.02f;else->.95f})
+        tts?.setPitch(when(voiceStyle){"soft"->.92f;"bright"->1.08f;else->1f})
         result.success(mapOf("offline" to true,"voice" to voice.name))
     }
     private fun speak(call:MethodCall,result:MethodChannel.Result) {
         check(ai&&ttsReady){"ECHO is not answering"}
         val text=call.argument<String>("text")?.take(600)?:""
         if(call.argument<Boolean>("disclosure")==true)listenAfter=SystemClock.elapsedRealtime()+2200
+        val cached=prepared[text]
+        if(cached!=null){for(chunk in cached.chunks)output.add(chunk,cached.rate,generation);result.success(null);return}
         val id="${generation}-${++next}"
         val file=File.createTempFile("echo-voice-",".wav",context.cacheDir)
         synchronized(speaking){speaking[id]=Speech(generation,result,file)}
@@ -143,13 +167,16 @@ class EchoPhoneNative(private val context:Context, engine:FlutterEngine) : Event
             val item=synchronized(speaking){speaking[id]}?:return
             if(item.generation!=generation)return
             item.bytes+=audio.size
-            if(!ai)return
+            if(!ai&&item.cacheText==null)return
             try {
                 val pcm=ByteBuffer.wrap(audio).order(ByteOrder.LITTLE_ENDIAN)
                 val count=audio.size/(if(item.format==AudioFormat.ENCODING_PCM_FLOAT)4 else if(item.format==AudioFormat.ENCODING_PCM_8BIT)1 else 2)/item.channels
                 val mono=FloatArray(count)
                 for(i in 0 until count){var sum=0f;repeat(item.channels){sum+=if(item.format==AudioFormat.ENCODING_PCM_FLOAT)pcm.float*32767 else if(item.format==AudioFormat.ENCODING_PCM_8BIT)((pcm.get().toInt() and 255)-128)*256f else pcm.short.toFloat()};mono[i]=sum/item.channels}
-                output.add(mono,item.rate,item.generation)
+                if(item.cacheText!=null){
+                    check(item.bytes<=48000*4*20){"Prepared speech exceeded the duration limit"}
+                    item.chunks.add(mono)
+                }else output.add(mono,item.rate,item.generation)
             }catch(_:Exception){main.post{cancelSpeech();emit(mapOf("event" to "speechError"))}}
         }
         override fun onDone(id:String){finish(id,null)}
@@ -159,7 +186,12 @@ class EchoPhoneNative(private val context:Context, engine:FlutterEngine) : Event
     private fun finish(id:String,error:String?){
         val item=synchronized(speaking){speaking.remove(id)}?:return
         item.file.delete()
-        main.post{if(error==null&&item.generation==generation&&item.bytes>0)item.result.success(null)else item.result.error("tts_failed",error?:"Speech interrupted",null)}
+        main.post{
+            if(error==null&&item.generation==generation&&item.bytes>0){
+                if(item.cacheText!=null)prepared[item.cacheText]=PreparedSpeech(item.rate,item.chunks.toList())
+                item.result.success(null)
+            }else item.result.error("tts_failed",error?:"Speech interrupted",null)
+        }
     }
     private fun cancelSpeech(){
         generation++;output.clear(generation);tts?.stop()

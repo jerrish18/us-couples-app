@@ -90,7 +90,9 @@ class _EchoSettingsState extends State<EchoSettings> {
     try {
       if (phone.preferPhone &&
           _prefs['enabled'] == true &&
-          (!phone.ready || phone.language != _prefs['language']))
+          (!phone.ready ||
+              phone.language != _prefs['language'] ||
+              phone.voice != _prefs['voice']))
         throw StateError(
           'Download and prepare the selected phone models and language first.',
         );
@@ -154,7 +156,10 @@ class _EchoSettingsState extends State<EchoSettings> {
 
   List<Widget> _phoneControls(BuildContext context) {
     final ram = (phone.capabilities['ram'] as num? ?? 0) / 1073741824;
-    final ready = phone.ready && phone.language == _prefs['language'];
+    final ready =
+        phone.ready &&
+        phone.language == _prefs['language'] &&
+        phone.voice == _prefs['voice'];
     final pack = phone.plus ? phoneLlmPlus : phoneLlmLite;
     final mb =
         (pack.bytes + phoneWhisper.fold<int>(0, (n, f) => n + f.bytes)) /
@@ -252,7 +257,12 @@ class _EchoSettingsState extends State<EchoSettings> {
           OutlinedButton(
             onPressed: _saving || phone.preparing || !phone.supported
                 ? null
-                : () => _task(() => phone.prepare('${_prefs['language']}')),
+                : () => _task(
+                    () => phone.prepare(
+                      '${_prefs['language']}',
+                      selectedVoice: '${_prefs['voice']}',
+                    ),
+                  ),
             child: const Text('Prepare and test phone AI'),
           ),
           TextButton(

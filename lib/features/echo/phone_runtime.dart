@@ -7,6 +7,7 @@ import 'package:llamadart/llamadart.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 import 'phone_models.dart';
+import 'phone_phrases.dart';
 
 abstract interface class PhoneTextModel {
   Future<void> load(String path, {required bool plus});
@@ -239,16 +240,20 @@ class PhoneSpeechWorker {
 }
 
 class PhoneAiRuntime extends ChangeNotifier {
-  PhoneAiRuntime({PhoneModels? models, PhoneTextModel? text})
-    : models = models ?? PhoneModels(),
-      text = text ?? LocalLlamaModel();
+  PhoneAiRuntime({
+    PhoneModels? models,
+    PhoneTextModel? text,
+    PhoneSpeechWorker? speech,
+  }) : models = models ?? PhoneModels(),
+       text = text ?? LocalLlamaModel(),
+       speech = speech ?? PhoneSpeechWorker();
   static final instance = PhoneAiRuntime();
   static const native = MethodChannel('us/echo-phone');
   static const events = EventChannel('us/echo-phone-events');
   static const storage = FlutterSecureStorage();
   final PhoneModels models;
   final PhoneTextModel text;
-  final speech = PhoneSpeechWorker();
+  final PhoneSpeechWorker speech;
   bool plus = false,
       ready = false,
       preparing = false,
@@ -256,6 +261,7 @@ class PhoneAiRuntime extends ChangeNotifier {
       readyService = false;
   bool keepReady = false;
   String host = 'phone',
+      voice = 'default',
       language = 'English',
       status = 'Phone models are not prepared';
   Map<String, dynamic> capabilities = {};
@@ -330,9 +336,16 @@ class PhoneAiRuntime extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> prepare(String selectedLanguage) async {
+  Future<void> prepare(
+    String selectedLanguage, {
+    String selectedVoice = 'default',
+  }) async {
+    if (localCall)
+      throw StateError(
+        'Finish the ECHO call before changing its models or voice.',
+      );
     if (preparing) return;
-    if (ready && language == selectedLanguage) return;
+    if (ready && language == selectedLanguage && voice == selectedVoice) return;
     if (!supported)
       throw StateError(
         'On-phone AI needs a supported 64-bit Android phone (Android 9 or later).',
@@ -355,8 +368,27 @@ class PhoneAiRuntime extends ChangeNotifier {
       capabilities = Map<String, dynamic>.from(
         await native.invokeMethod('capabilities') as Map,
       );
-      await native.invokeMethod('prepareVoice', {'language': selectedLanguage});
-      await native.invokeMethod('testVoice');
+      await native
+          .invokeMethod('prepareVoice', {
+            'language': selectedLanguage,
+            'voice': selectedVoice,
+          })
+          .timeout(const Duration(seconds: 15));
+      await native
+          .invokeMethod('testVoice')
+          .timeout(const Duration(seconds: 20));
+      // Prepare fixed PCM before accepting calls. These replies still work if
+      // the Android TTS engine fails later during a call.
+      for (final phrases in [
+        phoneDisclosure,
+        phoneSavedAcknowledgement,
+        phoneUnsaved,
+        phoneNoSpeech,
+      ]) {
+        await native
+            .invokeMethod('cacheVoice', {'text': phrases[selectedLanguage]!})
+            .timeout(const Duration(seconds: 25));
+      }
       await speech.load(models, selectedLanguage);
       await text.load(
         await models.path(plus ? phoneLlmPlus : phoneLlmLite),
@@ -374,9 +406,11 @@ class PhoneAiRuntime extends ChangeNotifier {
           'The phone model returned no text. Try the smaller model.',
         );
       language = selectedLanguage;
+      voice = selectedVoice;
       ready = true;
       status = 'Ready on this phone';
     } catch (e) {
+      await native.invokeMethod('interrupt').catchError((_) => null);
       await text.close();
       await speech.close();
       status = e is StateError

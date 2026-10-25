@@ -27,6 +27,8 @@ Previously enabled phone answering warms verified downloaded models when Us open
 
 The larger model is optional. It can improve wording but consumes more RAM and may run more slowly. It does not change the selected Whisper speech model. No latency or Tamil accuracy target is claimed from RAM size alone; measure both real phones before enabling unattended use.
 
+Preparing also synthesizes bounded fixed AI identification and failure replies into memory before accepting calls. Those prepared replies do not depend on a live TTS engine during the call. Voice styles adjust the selected offline voice's pitch and speaking rate; they are not cloned partner voices. Prepare again after changing language or style.
+
 ## What happens in a call
 
 - The existing authenticated Us/WebRTC call is answered by the receiving phone after an atomic database claim. A bridge cannot take a call configured for phone hosting.
